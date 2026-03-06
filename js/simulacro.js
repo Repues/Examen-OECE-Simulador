@@ -399,7 +399,7 @@ async function finalizarExamen() {
   mostrarResultados(correctas, preguntasExamen.length, porcentaje, tiempoUsado, detalle);
 }
 
-function mostrarResultados(correctas, total, porcentaje, tiempoUsado, detalle) {
+async function mostrarResultados(correctas, total, porcentaje, tiempoUsado, detalle) {
   document.getElementById('panel-examen').style.display = 'none';
   document.getElementById('panel-resultados').style.display = 'block';
 
@@ -412,21 +412,21 @@ function mostrarResultados(correctas, total, porcentaje, tiempoUsado, detalle) {
   const min = Math.floor(tiempoUsado / 60), seg = tiempoUsado % 60;
   document.getElementById('resultado-tiempo').textContent = `${min}m ${seg}s`;
 
-  // Análisis por tema
-  const porTema = {};
+  // ── ANÁLISIS POR TEMA (sesión actual) ────────────────────────────────────────
+  const porTemaActual = {};
   detalle.forEach(d => {
-    if (!porTema[d.tema]) porTema[d.tema] = { correctas: 0, total: 0 };
-    porTema[d.tema].total++;
-    if (d.correcto) porTema[d.tema].correctas++;
+    if (!porTemaActual[d.tema]) porTemaActual[d.tema] = { correctas: 0, total: 0 };
+    porTemaActual[d.tema].total++;
+    if (d.correcto) porTemaActual[d.tema].correctas++;
   });
 
-  const temasHtml = Object.entries(porTema).map(([tema, stats]) => {
+  const temasHtml = Object.entries(porTemaActual).map(([tema, stats]) => {
     const pct = Math.round((stats.correctas / stats.total) * 100);
     return `
       <div class="tema-stat">
         <span class="tema-nombre">${tema}</span>
         <div class="tema-bar-container">
-          <div class="tema-bar" style="width:${pct}%; background:${pct >= 70 ? 'var(--verde-correcto)' : 'var(--rojo-incorrecto)'}"></div>
+          <div class="tema-bar" style="width:${pct}%; background:${pct >= 70 ? 'var(--verde)' : pct >= 40 ? 'var(--amarillo)' : 'var(--rojo-error)'}"></div>
         </div>
         <span class="tema-pct">${pct}%</span>
       </div>
@@ -434,7 +434,10 @@ function mostrarResultados(correctas, total, porcentaje, tiempoUsado, detalle) {
   }).join('');
   document.getElementById('analisis-temas').innerHTML = temasHtml;
 
-  // Revisión de respuestas (solo modo final)
+  // ── MAPA DE CALOR COMBINADO ───────────────────────────────────────────────────
+  renderMapaCalorCombinado(porTemaActual);
+
+  // ── REVISIÓN DE RESPUESTAS (solo modo final) ──────────────────────────────────
   if (modoCorreccion === 'final') {
     const revisionHtml = detalle.map((d, i) => {
       const p = preguntasExamen[i];
@@ -456,6 +459,185 @@ function mostrarResultados(correctas, total, porcentaje, tiempoUsado, detalle) {
     document.getElementById('btn-iniciar-examen').disabled = false;
     document.getElementById('btn-iniciar-examen').textContent = 'Iniciar Simulacro';
   });
+}
+
+// ── MAPA DE CALOR COMBINADO ───────────────────────────────────────────────────
+async function renderMapaCalorCombinado(porTemaActual) {
+  const contenedor = document.getElementById('mapa-calor-container');
+  if (!contenedor) return;
+  contenedor.innerHTML = '<p style="color:var(--gris-suave); font-size:0.85rem;">Cargando historial...</p>';
+
+  // 1. Traer historial de Firestore (últimas 8 sesiones del alumno)
+  let historial = [];
+  try {
+    const { getDocs: gd, collection: col, query: q, where: w, orderBy: ob, limit: lim } =
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const snap = await gd(q(
+      col(db, 'resultados'),
+      w('dni', '==', session.dni),
+      ob('fecha', 'desc'),
+      lim(8)
+    ));
+    snap.forEach(d => historial.push(d.data()));
+    historial.reverse(); // cronológico: más antiguo primero
+  } catch (e) {
+    console.warn('No se pudo cargar historial:', e);
+  }
+
+  // 2. Recopilar todos los temas que aparecen en la sesión actual
+  const temas = Object.keys(porTemaActual).sort();
+  if (temas.length === 0) { contenedor.innerHTML = ''; return; }
+
+  // 3. Función para obtener pct de un tema en una sesión histórica
+  function pctTemaSesion(sesion, tema) {
+    if (!sesion?.respuestas) return null;
+    const delTema = sesion.respuestas.filter(r => r.tema === tema);
+    if (delTema.length === 0) return null;
+    const ok = delTema.filter(r => r.correcto).length;
+    return Math.round((ok / delTema.length) * 100);
+  }
+
+  // 4. Función color según porcentaje
+  function colorCalor(pct) {
+    if (pct === null) return { bg: 'rgba(255,255,255,0.04)', text: 'var(--gris-suave)', label: '—' };
+    if (pct >= 85) return { bg: 'rgba(16,185,129,0.75)',  text: '#fff', label: `${pct}%` };
+    if (pct >= 70) return { bg: 'rgba(16,185,129,0.40)',  text: '#fff', label: `${pct}%` };
+    if (pct >= 50) return { bg: 'rgba(245,158,11,0.55)',  text: '#fff', label: `${pct}%` };
+    if (pct >= 30) return { bg: 'rgba(239,68,68,0.45)',   text: '#fff', label: `${pct}%` };
+    return           { bg: 'rgba(239,68,68,0.80)',         text: '#fff', label: `${pct}%` };
+  }
+
+  // 5. Calcular promedios históricos por tema (excluyendo sesión actual)
+  function promedioHistorico(tema) {
+    const vals = historial.map(s => pctTemaSesion(s, tema)).filter(v => v !== null);
+    if (vals.length === 0) return null;
+    return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+  }
+
+  // 6. Determinar tendencia (↑ ↓ → )
+  function tendencia(tema, pctActual) {
+    const hist = historial.map(s => pctTemaSesion(s, tema)).filter(v => v !== null);
+    if (hist.length < 2) return { icon: '🆕', color: 'var(--gris-suave)', label: 'Primera vez' };
+    const promAnterior = Math.round(hist.slice(-2).reduce((a,b) => a+b, 0) / Math.min(2, hist.length));
+    const diff = pctActual - promAnterior;
+    if (diff >= 10) return { icon: '↑', color: 'var(--verde)', label: `+${diff}%` };
+    if (diff <= -10) return { icon: '↓', color: 'var(--rojo-error)', label: `${diff}%` };
+    return { icon: '→', color: 'var(--amarillo)', label: `${diff > 0 ? '+' : ''}${diff}%` };
+  }
+
+  // 7. Columnas: historial (hasta 8) + sesión actual
+  const colsHistorial = historial.map((s, i) => ({
+    label: `S${i + 1}`,
+    fecha: s.fecha ? new Date(s.fecha.seconds * 1000).toLocaleDateString('es-PE', { day:'2-digit', month:'2-digit' }) : `#${i+1}`
+  }));
+
+  // 8. Render HTML
+  const totalCols = colsHistorial.length + 1; // +1 para "Actual"
+
+  let html = `
+    <style>
+      .heatmap-wrap { overflow-x: auto; }
+      .heatmap-table { border-collapse: separate; border-spacing: 3px; width: 100%; min-width: 520px; }
+      .hm-th { font-size: 0.72rem; color: var(--gris-suave); text-align: center;
+                padding: 4px 6px; white-space: nowrap; font-weight: 600; }
+      .hm-th.actual-col { color: var(--dorado); }
+      .hm-tema { font-size: 0.78rem; color: rgba(255,255,255,0.8); padding: 4px 8px;
+                 white-space: nowrap; text-transform: capitalize; }
+      .hm-cell { border-radius: 6px; text-align: center; padding: 7px 4px;
+                 font-size: 0.75rem; font-weight: 700; transition: transform 0.15s;
+                 cursor: default; position: relative; }
+      .hm-cell:hover { transform: scale(1.08); z-index: 2; }
+      .hm-cell.actual { box-shadow: 0 0 0 2px var(--dorado); }
+      .tend-badge { display: inline-flex; align-items: center; gap: 3px;
+                    font-size: 0.72rem; font-weight: 700; padding: 2px 7px;
+                    border-radius: 12px; background: rgba(255,255,255,0.08); }
+      .hm-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px;
+                   align-items: center; font-size: 0.78rem; color: var(--gris-suave); }
+      .hm-legend-item { display: flex; align-items: center; gap: 5px; }
+      .hm-legend-dot { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
+      .hm-section-title { font-size: 0.78rem; color: var(--gris-suave); text-transform: uppercase;
+                           letter-spacing: 0.08em; margin-bottom: 6px; }
+    </style>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;" class="hm-top-grid">
+      <!-- Tarjetas resumen -->
+      <div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); border-radius:var(--radius); padding:16px;">
+        <div class="hm-section-title">✅ Temas dominados (≥70%)</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+          ${temas.filter(t => {
+              const p = Math.round((porTemaActual[t].correctas/porTemaActual[t].total)*100);
+              return p >= 70;
+            }).map(t => `<span style="background:rgba(16,185,129,0.2);color:#34D399;padding:3px 10px;border-radius:20px;font-size:0.78rem;">${t}</span>`).join('')
+            || '<span style="color:var(--gris-suave);font-size:0.82rem;">Ninguno aún</span>'}
+        </div>
+      </div>
+      <div style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); border-radius:var(--radius); padding:16px;">
+        <div class="hm-section-title">🔴 Temas a reforzar (&lt;50%)</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+          ${temas.filter(t => {
+              const p = Math.round((porTemaActual[t].correctas/porTemaActual[t].total)*100);
+              return p < 50;
+            }).map(t => `<span style="background:rgba(239,68,68,0.2);color:#FC8181;padding:3px 10px;border-radius:20px;font-size:0.78rem;">${t}</span>`).join('')
+            || '<span style="color:var(--gris-suave);font-size:0.82rem;">¡Ninguno! 💪</span>'}
+        </div>
+      </div>
+    </div>
+
+    <div class="heatmap-wrap">
+      <table class="heatmap-table">
+        <thead>
+          <tr>
+            <th class="hm-th" style="text-align:left;">Tema</th>
+            ${colsHistorial.map(c => `<th class="hm-th" title="${c.fecha}">${c.label}<br><span style="font-weight:400;opacity:0.7;">${c.fecha}</span></th>`).join('')}
+            <th class="hm-th actual-col">⭐ Actual</th>
+            <th class="hm-th" style="min-width:70px;">Tendencia</th>
+            <th class="hm-th">Promedio</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${temas.map(tema => {
+            const pctActual = Math.round((porTemaActual[tema].correctas / porTemaActual[tema].total) * 100);
+            const colorAct = colorCalor(pctActual);
+            const tend = tendencia(tema, pctActual);
+            const promHist = promedioHistorico(tema);
+            const colorProm = colorCalor(promHist);
+
+            const celdaHistorial = colsHistorial.map((_, i) => {
+              const pct = pctTemaSesion(historial[i], tema);
+              const c = colorCalor(pct);
+              return `<td><div class="hm-cell" style="background:${c.bg};color:${c.text};">${c.label}</div></td>`;
+            }).join('');
+
+            return `
+              <tr>
+                <td class="hm-tema">${tema.replace(/_/g,' ')}</td>
+                ${celdaHistorial}
+                <td><div class="hm-cell actual" style="background:${colorAct.bg};color:${colorAct.text};">${colorAct.label}</div></td>
+                <td style="text-align:center;"><span class="tend-badge" style="color:${tend.color};">${tend.icon} ${tend.label}</span></td>
+                <td><div class="hm-cell" style="background:${colorProm.bg};color:${colorProm.text};">${colorProm.label}</div></td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="hm-legend">
+      <span>Escala de colores:</span>
+      <div class="hm-legend-item"><div class="hm-legend-dot" style="background:rgba(16,185,129,0.75);"></div> ≥85% Excelente</div>
+      <div class="hm-legend-item"><div class="hm-legend-dot" style="background:rgba(16,185,129,0.40);"></div> 70–84% Aprobado</div>
+      <div class="hm-legend-item"><div class="hm-legend-dot" style="background:rgba(245,158,11,0.55);"></div> 50–69% Regular</div>
+      <div class="hm-legend-item"><div class="hm-legend-dot" style="background:rgba(239,68,68,0.45);"></div> 30–49% Débil</div>
+      <div class="hm-legend-item"><div class="hm-legend-dot" style="background:rgba(239,68,68,0.80);"></div> &lt;30% Crítico</div>
+      <div class="hm-legend-item"><div class="hm-legend-dot" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);"></div> Sin datos</div>
+    </div>
+  `;
+
+  contenedor.innerHTML = html;
+
+  // Ajustar grid de tarjetas en móvil
+  const topGrid = contenedor.querySelector('.hm-top-grid');
+  if (topGrid && window.innerWidth < 600) topGrid.style.gridTemplateColumns = '1fr';
 }
 
 function showToast(msg, type = 'success') {
