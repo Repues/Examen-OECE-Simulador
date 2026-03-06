@@ -108,45 +108,102 @@ function renderFlashcard(idx) {
 }
 
 // ── SIMULACRO ENGINE ──────────────────────────────────────────────────────────
+
+/*
+  LÓGICA DE PLANES:
+  - INTERMEDIO: 60% preguntas intermedio + 40% avanzado (fijo, sin opción)
+  - AVANZADO:   El alumno elige el modo antes de iniciar:
+                  · "100% Avanzado"
+                  · "Mixto" (60% avanzado + 40% intermedio, sin porcentajes fijos visibles)
+*/
+
 async function iniciarExamen() {
   const btn = document.getElementById('btn-iniciar-examen');
   btn.disabled = true; btn.textContent = 'Cargando preguntas...';
 
+  const modoExamen = session.nivel === 'avanzado'
+    ? (document.getElementById('modo-examen')?.value || '100avanzado')
+    : 'mixto_intermedio'; // intermedio siempre es 60/40
+
   try {
-    // 1. Obtener preguntas usadas (anti-repetición)
+    // 1. Obtener sesión anti-repetición
     const sesionRef = doc(db, 'sesiones', session.dni);
     const sesionSnap = await getDoc(sesionRef);
-    let preguntasUsadas = sesionSnap.exists() ? (sesionSnap.data().preguntasUsadas || []) : [];
+    const sesionData = sesionSnap.exists() ? sesionSnap.data() : {};
+    let usadasInt = sesionData.usadasIntermedio || [];
+    let usadasAdv = sesionData.usadasAvanzado   || [];
 
-    // 2. Obtener TODAS las preguntas del nivel
-    const q = query(collection(db, 'Preguntas'), where('nivel', '==', session.nivel));
-    const snap = await getDocs(q);
-    todasPreguntas = [];
-    snap.forEach(d => todasPreguntas.push({ id: d.id, ...d.data() }));
+    // 2. Cargar banco de preguntas según lo que necesitamos
+    const necesitaInt = modoExamen === 'mixto_intermedio' || modoExamen === 'mixto_avanzado';
+    const necesitaAdv = modoExamen !== 'mixto_intermedio'; // todos los modos avanzado necesitan adv
 
-    if (todasPreguntas.length < 10) {
-      showToast('No hay suficientes preguntas cargadas para tu nivel. Contacta al administrador.', 'error');
+    let bancoInt = [], bancoAdv = [];
+
+    if (modoExamen === 'mixto_intermedio' || necesitaInt) {
+      const snapI = await getDocs(query(collection(db, 'Preguntas'), where('nivel', '==', 'intermedio')));
+      snapI.forEach(d => bancoInt.push({ id: d.id, ...d.data() }));
+    }
+    if (necesitaAdv || modoExamen === '100avanzado') {
+      const snapA = await getDocs(query(collection(db, 'Preguntas'), where('nivel', '==', 'avanzado')));
+      snapA.forEach(d => bancoAdv.push({ id: d.id, ...d.data() }));
+    }
+
+    // 3. Determinar cantidades según plan y modo
+    let cantInt = 0, cantAdv = 0;
+
+    if (modoExamen === 'mixto_intermedio') {
+      // Plan Intermedio: 60% intermedio + 40% avanzado
+      cantInt = Math.round(TOTAL_PREGUNTAS * 0.60); // 43
+      cantAdv = TOTAL_PREGUNTAS - cantInt;           // 29
+    } else if (modoExamen === '100avanzado') {
+      // Plan Avanzado modo puro: 100% avanzado
+      cantInt = 0;
+      cantAdv = TOTAL_PREGUNTAS; // 72
+    } else if (modoExamen === 'mixto_avanzado') {
+      // Plan Avanzado modo mixto: ~60% avanzado + ~40% intermedio (aleatorio dentro del rango)
+      const pctAdv = 0.55 + Math.random() * 0.15; // entre 55% y 70%, varía cada vez
+      cantAdv = Math.round(TOTAL_PREGUNTAS * pctAdv);
+      cantInt = TOTAL_PREGUNTAS - cantAdv;
+    }
+
+    // 4. Función de selección anti-repetición con reset automático
+    function seleccionar(banco, usadas, cantidad) {
+      if (cantidad === 0) return { seleccionadas: [], nuevasUsadas: usadas };
+      let disponibles = banco.filter(p => !usadas.includes(p.id));
+      if (disponibles.length < cantidad) {
+        // Reset: ya vio todas, reiniciar ciclo
+        disponibles = banco;
+        usadas = [];
+      }
+      const seleccionadas = shuffleArray(disponibles).slice(0, Math.min(cantidad, disponibles.length));
+      const nuevasUsadas = [...new Set([...usadas, ...seleccionadas.map(p => p.id)])];
+      return { seleccionadas, nuevasUsadas };
+    }
+
+    const resInt = seleccionar(bancoInt, usadasInt, cantInt);
+    const resAdv = seleccionar(bancoAdv, usadasAdv, cantAdv);
+
+    if (resInt.seleccionadas.length + resAdv.seleccionadas.length < 10) {
+      showToast('No hay suficientes preguntas cargadas. Contacta al administrador.', 'error');
       btn.disabled = false; btn.textContent = 'Iniciar Simulacro';
       return;
     }
 
-    // 3. Algoritmo anti-repetición
-    let disponibles = todasPreguntas.filter(p => !preguntasUsadas.includes(p.id));
-
-    // Si no hay suficientes disponibles, resetear y usar todas
-    if (disponibles.length < TOTAL_PREGUNTAS) {
-      disponibles = todasPreguntas;
-      preguntasUsadas = [];
-      await setDoc(sesionRef, { preguntasUsadas: [], nivel: session.nivel, ultimaActualizacion: serverTimestamp() });
-    }
-
-    // 4. Selección aleatoria sin duplicados
-    preguntasExamen = shuffleArray(disponibles).slice(0, Math.min(TOTAL_PREGUNTAS, disponibles.length));
+    // 5. Mezclar todas las preguntas seleccionadas aleatoriamente
+    preguntasExamen = shuffleArray([...resInt.seleccionadas, ...resAdv.seleccionadas]);
     respuestasAlumno = new Array(preguntasExamen.length).fill(null);
     currentIndex = 0;
     tiempoInicio = Date.now();
 
-    // 5. Mostrar pantalla de examen
+    // 6. Guardar IDs usados en Firestore
+    await setDoc(sesionRef, {
+      usadasIntermedio: resInt.nuevasUsadas,
+      usadasAvanzado:   resAdv.nuevasUsadas,
+      nivel: session.nivel,
+      ultimaActualizacion: serverTimestamp()
+    });
+
+    // 7. Mostrar examen
     document.getElementById('panel-config').style.display = 'none';
     document.getElementById('panel-examen').style.display = 'block';
     document.getElementById('examen-total').textContent = preguntasExamen.length;
