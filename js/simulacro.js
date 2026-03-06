@@ -257,28 +257,40 @@ function renderPregunta(idx) {
   const omEl = document.getElementById('omitidas-count');
   if (omEl) omEl.textContent = omitidas;
 
-  // Opciones
+  // Opciones — mezclar orden aleatoriamente para evitar memorización por posición
   const opcionesContainer = document.getElementById('opciones-container');
   opcionesContainer.innerHTML = '';
 
-  ['A', 'B', 'C', 'D'].forEach(letra => {
-    if (!p[letra]) return;
+  // Construir array de opciones disponibles con su letra original
+  const letrasOriginales = ['A', 'B', 'C', 'D'].filter(l => p[l]);
+  // Mezclar Fisher-Yates
+  const letrasOrden = [...letrasOriginales];
+  for (let i = letrasOrden.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [letrasOrden[i], letrasOrden[j]] = [letrasOrden[j], letrasOrden[i]];
+  }
+  // Etiquetas visuales A/B/C/D para el orden mezclado
+  const etiquetasVisuales = ['A', 'B', 'C', 'D'];
+
+  letrasOrden.forEach((letraOriginal, posicion) => {
+    const etiquetaVisual = etiquetasVisuales[posicion];
     const btn = document.createElement('button');
     btn.className = 'opcion-btn';
-    btn.dataset.letra = letra;
-    btn.innerHTML = `<span class="opcion-letra">${letra}</span><span class="opcion-texto">${p[letra]}</span>`;
+    btn.dataset.letra = letraOriginal; // letra real para validación Firebase
+    btn.dataset.visual = etiquetaVisual; // etiqueta que ve el alumno
+    btn.innerHTML = `<span class="opcion-letra">${etiquetaVisual}</span><span class="opcion-texto">${p[letraOriginal]}</span>`;
 
     const respuesta = respuestasAlumno[idx];
     if (respuesta) {
       btn.disabled = true;
-      if (respuesta === letra) btn.classList.add('selected');
+      if (respuesta === letraOriginal) btn.classList.add('selected');
       if (modoCorreccion === 'momento') {
         const correctaLetra = p.correcta?.charAt(0);
-        if (letra === correctaLetra) btn.classList.add('correcta');
-        if (respuesta === letra && respuesta !== correctaLetra) btn.classList.add('incorrecta');
+        if (letraOriginal === correctaLetra) btn.classList.add('correcta');
+        if (respuesta === letraOriginal && respuesta !== correctaLetra) btn.classList.add('incorrecta');
       }
     }
-    btn.addEventListener('click', () => seleccionarRespuesta(idx, letra, btn));
+    btn.addEventListener('click', () => seleccionarRespuesta(idx, letraOriginal, btn));
     opcionesContainer.appendChild(btn);
   });
 
