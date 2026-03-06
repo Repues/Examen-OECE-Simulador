@@ -13,9 +13,6 @@
 </head>
 <body>
 
-<!-- Cerrar sesión flotante — solo visible en móvil -->
-<button class="logout-mobile" id="btn-logout-mobile">✕ Salir</button>
-
 <div class="dashboard-layout">
 
   <!-- SIDEBAR -->
@@ -273,12 +270,6 @@
 
 <script type="module" src="js/simulacro.js"></script>
 <script type="module">
-  // Botón logout móvil
-  const btnLogoutMobile = document.getElementById('btn-logout-mobile');
-  if (btnLogoutMobile) btnLogoutMobile.addEventListener('click', () => {
-    import('./js/auth.js').then(m => m.logout());
-  });
-
   // Mostrar bloque correcto según nivel del alumno
   import { getSession } from './js/auth.js';
   const session = getSession();
