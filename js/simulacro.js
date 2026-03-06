@@ -172,6 +172,16 @@ function shuffleArray(arr) {
 }
 
 function renderPregunta(idx) {
+  // ── RESET: ocultar feedback y limpiar auto-avance pendiente ──
+  const feedbackEl = document.getElementById('feedback-momento');
+  feedbackEl.style.display = 'none';
+  feedbackEl.innerHTML = '';
+
+  if (window._autoAvanceTimer) {
+    clearTimeout(window._autoAvanceTimer);
+    window._autoAvanceTimer = null;
+  }
+
   const p = preguntasExamen[idx];
   document.getElementById('num-pregunta').textContent = idx + 1;
   document.getElementById('tema-pregunta').textContent = p.tema || '';
@@ -248,9 +258,14 @@ function seleccionarRespuesta(idx, letra, btnClicked) {
 
   renderMapa();
 
-  // Auto-avanzar después de 1.5s si hay siguiente
+  // Auto-avanzar después de 2s si hay siguiente — cancelable si el usuario navega manualmente
   if (modoCorreccion === 'momento' && currentIndex < preguntasExamen.length - 1) {
-    setTimeout(() => { currentIndex++; renderPregunta(currentIndex); renderMapa(); }, 2000);
+    window._autoAvanceTimer = setTimeout(() => {
+      window._autoAvanceTimer = null;
+      currentIndex++;
+      renderPregunta(currentIndex);
+      renderMapa();
+    }, 2000);
   }
 }
 
