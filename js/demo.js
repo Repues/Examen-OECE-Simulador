@@ -76,7 +76,7 @@ async function cargarYEmpezar(nivel) {
 
   try {
     const snap = await getDocs(
-      query(collection(db, 'preguntas'), where('nivel', '==', nivel))
+      query(collection(db, 'Preguntas'), where('nivel', '==', nivel))
     );
     let todas = [];
     snap.forEach(d => todas.push({ id: d.id, ...d.data() }));
