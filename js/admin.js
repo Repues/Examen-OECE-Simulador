@@ -2,7 +2,7 @@
 import { db } from './firebase-config.js';
 import { requireAuth, logout } from './auth.js';
 import {
-  collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, writeBatch, query, orderBy, limit
+  collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 let session = null;
@@ -20,7 +20,7 @@ function initAdmin() {
   setupCargaTab();
 }
 
-// ── NAVEGACIÓN ──────────────────────────────────────────────────────────────
+// ── NAVEGACIÓN ────────────────────────────────────────────────────────────────
 function setupNav() {
   document.getElementById('btn-logout').addEventListener('click', logout);
   document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -33,7 +33,37 @@ function setupNav() {
   });
 }
 
-// ── DASHBOARD ────────────────────────────────────────────────────────────────
+// ── UTILIDADES DE FECHA ───────────────────────────────────────────────────────
+function calcularFechaFin(fechaInicio, plan) {
+  const d = new Date(fechaInicio);
+  const meses = plan === '3 meses' ? 3 : 2;
+  d.setMonth(d.getMonth() + meses);
+  return d.toISOString().split('T')[0];
+}
+
+function diasRestantes(fechaFin) {
+  if (!fechaFin) return null;
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const fin = new Date(fechaFin); fin.setHours(0,0,0,0);
+  return Math.ceil((fin - hoy) / (1000 * 60 * 60 * 24));
+}
+
+function badgeVencimiento(fechaFin, activo) {
+  if (activo !== 'true') return `<span class="badge badge-red">Inactivo</span>`;
+  const dias = diasRestantes(fechaFin);
+  if (dias === null) return `<span class="badge badge-green">Activo</span>`;
+  if (dias < 0)  return `<span class="badge badge-red">Vencido</span>`;
+  if (dias <= 7) return `<span class="badge" style="background:rgba(245,158,11,0.2);color:#F59E0B;">⚠️ ${dias}d</span>`;
+  return `<span class="badge badge-green">✓ ${dias}d</span>`;
+}
+
+function formatFecha(iso) {
+  if (!iso) return '—';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
 async function loadDashboard() {
   try {
     const [usuariosSnap, preguntasSnap, resultadosSnap] = await Promise.all([
@@ -42,21 +72,47 @@ async function loadDashboard() {
       getDocs(collection(db, 'resultados'))
     ]);
 
+    // Auto-expirar vencidos
+    const batch = writeBatch(db);
+    let expiraron = 0;
+    usuariosSnap.forEach(d => {
+      const u = d.data();
+      if (u.activo === 'true' && u.fechaFin) {
+        const dias = diasRestantes(u.fechaFin);
+        if (dias !== null && dias < 0) {
+          batch.update(doc(db, 'Usuarios', u.dni), { activo: 'false' });
+          expiraron++;
+        }
+      }
+    });
+    if (expiraron > 0) {
+      await batch.commit();
+      showToast(`${expiraron} cuenta(s) vencida(s) desactivada(s) automáticamente`, 'error');
+    }
+
     document.getElementById('stat-usuarios').textContent = usuariosSnap.size;
     document.getElementById('stat-preguntas').textContent = preguntasSnap.size;
     document.getElementById('stat-simulacros').textContent = resultadosSnap.size;
 
-    // Calcular promedio
+    // Alumnos por vencer en 7 días
+    let porVencer = 0;
+    usuariosSnap.forEach(d => {
+      const u = d.data();
+      if (u.activo === 'true' && u.fechaFin) {
+        const dias = diasRestantes(u.fechaFin);
+        if (dias !== null && dias >= 0 && dias <= 7) porVencer++;
+      }
+    });
+    const el = document.getElementById('stat-por-vencer');
+    if (el) el.textContent = porVencer;
+
     let totalPct = 0;
     resultadosSnap.forEach(d => { totalPct += (d.data().porcentaje || 0); });
     const avg = resultadosSnap.size > 0 ? (totalPct / resultadosSnap.size).toFixed(1) : '—';
     document.getElementById('stat-promedio').textContent = avg + (resultadosSnap.size > 0 ? '%' : '');
 
-    // Últimos resultados
     loadRecentResults(resultadosSnap);
-  } catch (e) {
-    console.error('Error cargando dashboard:', e);
-  }
+  } catch (e) { console.error('Error dashboard:', e); }
 }
 
 function loadRecentResults(snap) {
@@ -70,12 +126,8 @@ function loadRecentResults(snap) {
       <td>${r.dni || '—'}</td>
       <td>${r.nivel || '—'}</td>
       <td>${r.puntaje || 0}/${r.total || 72}</td>
-      <td>
-        <span class="badge ${r.porcentaje >= 70 ? 'badge-green' : 'badge-red'}">
-          ${(r.porcentaje || 0).toFixed(1)}%
-        </span>
-      </td>
-      <td>${r.fecha ? new Date(r.fecha.seconds * 1000).toLocaleDateString('es-PE') : '—'}</td>
+      <td><span class="badge ${r.porcentaje >= 70 ? 'badge-green' : 'badge-red'}">${(r.porcentaje||0).toFixed(1)}%</span></td>
+      <td>${r.fecha ? new Date(r.fecha.seconds*1000).toLocaleDateString('es-PE') : '—'}</td>
     </tr>
   `).join('') || '<tr><td colspan="5" class="empty-row">Sin resultados aún</td></tr>';
 }
@@ -88,6 +140,14 @@ function setupUsuariosTab() {
   document.getElementById('btn-cancelar').addEventListener('click', closeModal);
   document.getElementById('modal-overlay').addEventListener('click', closeModal);
   document.getElementById('input-buscar').addEventListener('input', filterUsuarios);
+  document.getElementById('u-plan').addEventListener('change', autoFechaFin);
+  document.getElementById('u-fecha-inicio').addEventListener('change', autoFechaFin);
+}
+
+function autoFechaFin() {
+  const fi   = document.getElementById('u-fecha-inicio').value;
+  const plan = document.getElementById('u-plan').value;
+  if (fi && plan) document.getElementById('u-fecha-fin').value = calcularFechaFin(fi, plan);
 }
 
 let allUsuarios = [];
@@ -96,6 +156,11 @@ async function loadUsuarios() {
   const snap = await getDocs(collection(db, 'Usuarios'));
   allUsuarios = [];
   snap.forEach(d => allUsuarios.push(d.data()));
+  allUsuarios.sort((a, b) => {
+    const da = diasRestantes(a.fechaFin) ?? 9999;
+    const db_ = diasRestantes(b.fechaFin) ?? 9999;
+    return da - db_;
+  });
   renderUsuarios(allUsuarios);
 }
 
@@ -107,18 +172,16 @@ function renderUsuarios(list) {
       <td>${u.nombre}</td>
       <td><span class="badge badge-nivel-${u.nivel}">${u.nivel}</span></td>
       <td>${u.plan}</td>
-      <td>${u.telefono || '—'}</td>
-      <td>
-        <span class="badge ${u.activo === 'true' ? 'badge-green' : 'badge-red'}">
-          ${u.activo === 'true' ? 'Activo' : 'Inactivo'}
-        </span>
+      <td style="font-size:0.8rem; white-space:nowrap; line-height:1.6;">
+        ${u.fechaInicio ? `<span style="color:var(--gris-suave);">Inicio: ${formatFecha(u.fechaInicio)}</span><br>` : ''}
+        ${u.fechaFin    ? `<strong>Vence: ${formatFecha(u.fechaFin)}</strong>` : '—'}
       </td>
+      <td>${badgeVencimiento(u.fechaFin, u.activo)}</td>
       <td class="actions-cell">
-        <button class="btn-icon btn-edit" onclick="editUsuario('${u.dni}')">✏️</button>
-        <button class="btn-icon btn-toggle" onclick="toggleUsuario('${u.dni}', '${u.activo}')">
-          ${u.activo === 'true' ? '🔒' : '🔓'}
-        </button>
-        <button class="btn-icon btn-delete" onclick="deleteUsuario('${u.dni}')">🗑️</button>
+        <button class="btn-icon" onclick="editUsuario('${u.dni}')" title="Editar">✏️</button>
+        <button class="btn-icon" onclick="toggleUsuario('${u.dni}','${u.activo}')" title="${u.activo==='true'?'Desactivar':'Activar'}">${u.activo==='true'?'🔒':'🔓'}</button>
+        <button class="btn-icon" onclick="renovarUsuario('${u.dni}')" title="Renovar">🔄</button>
+        <button class="btn-icon" onclick="deleteUsuario('${u.dni}')" title="Eliminar">🗑️</button>
       </td>
     </tr>
   `).join('') || '<tr><td colspan="7" class="empty-row">Sin usuarios registrados</td></tr>';
@@ -126,29 +189,27 @@ function renderUsuarios(list) {
 
 function filterUsuarios(e) {
   const q = e.target.value.toLowerCase();
-  renderUsuarios(allUsuarios.filter(u =>
-    u.dni.includes(q) || u.nombre.toLowerCase().includes(q)
-  ));
+  renderUsuarios(allUsuarios.filter(u => u.dni.includes(q) || u.nombre.toLowerCase().includes(q)));
 }
 
 function openModal(data = null) {
-  const modal = document.getElementById('modal-usuario');
-  const form = document.getElementById('form-usuario');
-  form.reset();
+  document.getElementById('form-usuario').reset();
   document.getElementById('modal-title').textContent = data ? 'Editar Usuario' : 'Nuevo Usuario';
-  document.getElementById('campo-dni').disabled = !!data;
-
+  document.getElementById('u-dni').disabled = !!data;
+  const hoy = new Date().toISOString().split('T')[0];
   if (data) {
-    document.getElementById('u-dni').value = data.dni;
-    document.getElementById('u-nombre').value = data.nombre;
-    document.getElementById('u-nivel').value = data.nivel;
-    document.getElementById('u-plan').value = data.plan;
-    document.getElementById('u-telefono').value = data.telefono || '';
-    document.getElementById('u-activo').value = data.activo;
-    // password vacío = no cambiar
+    document.getElementById('u-dni').value         = data.dni;
+    document.getElementById('u-nombre').value      = data.nombre;
+    document.getElementById('u-nivel').value       = data.nivel;
+    document.getElementById('u-plan').value        = data.plan;
+    document.getElementById('u-telefono').value    = data.telefono || '';
+    document.getElementById('u-activo').value      = data.activo;
+    document.getElementById('u-fecha-inicio').value = data.fechaInicio || hoy;
+    document.getElementById('u-fecha-fin').value   = data.fechaFin || '';
+  } else {
+    document.getElementById('u-fecha-inicio').value = hoy;
   }
-
-  modal.classList.add('active');
+  document.getElementById('modal-usuario').classList.add('active');
   document.getElementById('modal-overlay').classList.add('active');
 }
 
@@ -159,38 +220,39 @@ function closeModal() {
 
 async function saveUsuario(e) {
   e.preventDefault();
-  const dni = document.getElementById('u-dni').value.trim();
-  const nombre = document.getElementById('u-nombre').value.trim();
-  const nivel = document.getElementById('u-nivel').value;
-  const plan = document.getElementById('u-plan').value;
-  const telefono = document.getElementById('u-telefono').value.trim();
-  const activo = document.getElementById('u-activo').value;
-  const password = document.getElementById('u-password').value.trim();
+  const dni         = document.getElementById('u-dni').value.trim();
+  const nombre      = document.getElementById('u-nombre').value.trim();
+  const nivel       = document.getElementById('u-nivel').value;
+  const plan        = document.getElementById('u-plan').value;
+  const telefono    = document.getElementById('u-telefono').value.trim();
+  const activo      = document.getElementById('u-activo').value;
+  const password    = document.getElementById('u-password').value.trim();
+  const fechaInicio = document.getElementById('u-fecha-inicio').value;
+  const fechaFin    = document.getElementById('u-fecha-fin').value;
 
   if (!dni || !nombre || !nivel || !plan) {
     showToast('Completa todos los campos obligatorios', 'error'); return;
   }
 
-  const btnSave = document.getElementById('btn-save-usuario');
-  btnSave.disabled = true; btnSave.textContent = 'Guardando...';
+  const btn = document.getElementById('btn-save-usuario');
+  btn.disabled = true; btn.textContent = 'Guardando...';
 
   try {
     const ref = doc(db, 'Usuarios', dni);
     const existing = await getDoc(ref);
-    const dataToSave = { dni, nombre, nivel, plan, telefono, activo };
-
-    if (password) dataToSave.password = password;
-    else if (!existing.exists()) { showToast('Contraseña requerida para nuevo usuario', 'error'); return; }
-
-    await setDoc(ref, dataToSave, { merge: true });
-    showToast('Usuario guardado exitosamente ✓', 'success');
-    closeModal();
-    loadUsuarios();
-    loadDashboard();
+    if (!password && !existing.exists()) {
+      showToast('Contraseña requerida para nuevo usuario', 'error');
+      btn.disabled = false; btn.textContent = 'Guardar'; return;
+    }
+    const data = { dni, nombre, nivel, plan, telefono, activo, fechaInicio, fechaFin };
+    if (password) data.password = password;
+    await setDoc(ref, data, { merge: true });
+    showToast('Usuario guardado ✓', 'success');
+    closeModal(); loadUsuarios(); loadDashboard();
   } catch (err) {
-    showToast('Error al guardar: ' + err.message, 'error');
+    showToast('Error: ' + err.message, 'error');
   } finally {
-    btnSave.disabled = false; btnSave.textContent = 'Guardar';
+    btn.disabled = false; btn.textContent = 'Guardar';
   }
 }
 
@@ -200,33 +262,39 @@ window.editUsuario = async (dni) => {
 };
 
 window.toggleUsuario = async (dni, activo) => {
-  const nuevoEstado = activo === 'true' ? 'false' : 'true';
-  await updateDoc(doc(db, 'Usuarios', dni), { activo: nuevoEstado });
-  showToast(`Usuario ${nuevoEstado === 'true' ? 'activado' : 'desactivado'}`, 'success');
+  const nuevo = activo === 'true' ? 'false' : 'true';
+  await updateDoc(doc(db, 'Usuarios', dni), { activo: nuevo });
+  showToast(`Usuario ${nuevo === 'true' ? 'activado' : 'desactivado'}`, 'success');
   loadUsuarios();
+};
+
+window.renovarUsuario = async (dni) => {
+  const snap = await getDoc(doc(db, 'Usuarios', dni));
+  if (!snap.exists()) return;
+  const u = snap.data();
+  const hoy = new Date().toISOString().split('T')[0];
+  const nuevaFin = calcularFechaFin(hoy, u.plan);
+  if (!confirm(`¿Renovar plan de ${u.nombre}?\nNueva fecha de vencimiento: ${formatFecha(nuevaFin)}`)) return;
+  await updateDoc(doc(db, 'Usuarios', dni), { fechaInicio: hoy, fechaFin: nuevaFin, activo: 'true' });
+  showToast(`Renovado hasta ${formatFecha(nuevaFin)} ✓`, 'success');
+  loadUsuarios(); loadDashboard();
 };
 
 window.deleteUsuario = async (dni) => {
-  if (!confirm(`¿Eliminar usuario con DNI ${dni}? Esta acción no se puede deshacer.`)) return;
+  if (!confirm(`¿Eliminar DNI ${dni}? No se puede deshacer.`)) return;
   await deleteDoc(doc(db, 'Usuarios', dni));
   showToast('Usuario eliminado', 'success');
-  loadUsuarios();
-  loadDashboard();
+  loadUsuarios(); loadDashboard();
 };
 
-// ── CARGA MASIVA JSON ────────────────────────────────────────────────────────
+// ── CARGA MASIVA JSON ─────────────────────────────────────────────────────────
 function setupCargaTab() {
   const dropzone = document.getElementById('dropzone');
   const inputFile = document.getElementById('input-json');
-
   dropzone.addEventListener('click', () => inputFile.click());
   dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
   dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
-  dropzone.addEventListener('drop', e => {
-    e.preventDefault();
-    dropzone.classList.remove('dragover');
-    handleFile(e.dataTransfer.files[0]);
-  });
+  dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); });
   inputFile.addEventListener('change', e => handleFile(e.target.files[0]));
   document.getElementById('btn-cargar').addEventListener('click', uploadToFirestore);
   document.getElementById('btn-limpiar').addEventListener('click', clearPreview);
@@ -235,97 +303,64 @@ function setupCargaTab() {
 let jsonData = null;
 
 function handleFile(file) {
-  if (!file || !file.name.endsWith('.json')) {
-    showToast('Solo se aceptan archivos .json', 'error'); return;
-  }
+  if (!file || !file.name.endsWith('.json')) { showToast('Solo .json', 'error'); return; }
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
       jsonData = JSON.parse(e.target.result);
-      if (!Array.isArray(jsonData)) throw new Error('El JSON debe ser un array []');
+      if (!Array.isArray(jsonData)) throw new Error('Debe ser un array []');
       renderPreview(jsonData);
-    } catch (err) {
-      showToast('JSON inválido: ' + err.message, 'error');
-      jsonData = null;
-    }
+    } catch (err) { showToast('JSON inválido: ' + err.message, 'error'); jsonData = null; }
   };
   reader.readAsText(file);
 }
 
 function renderPreview(data) {
-  const container = document.getElementById('preview-container');
-  const stats = document.getElementById('preview-stats');
   const intermedio = data.filter(q => q.nivel === 'intermedio').length;
-  const avanzado = data.filter(q => q.nivel === 'avanzado').length;
-  const temas = [...new Set(data.map(q => q.tema))];
-
-  stats.innerHTML = `
-    <div class="preview-stat"><span class="ps-num">${data.length}</span><span class="ps-label">Total preguntas</span></div>
+  const avanzado   = data.filter(q => q.nivel === 'avanzado').length;
+  const temas      = [...new Set(data.map(q => q.tema))];
+  document.getElementById('preview-stats').innerHTML = `
+    <div class="preview-stat"><span class="ps-num">${data.length}</span><span class="ps-label">Total</span></div>
     <div class="preview-stat"><span class="ps-num">${intermedio}</span><span class="ps-label">Intermedio</span></div>
     <div class="preview-stat"><span class="ps-num">${avanzado}</span><span class="ps-label">Avanzado</span></div>
     <div class="preview-stat"><span class="ps-num">${temas.length}</span><span class="ps-label">Temas</span></div>
   `;
-
-  const tbody = document.getElementById('preview-tabla');
-  tbody.innerHTML = data.slice(0, 5).map((q, i) => `
+  document.getElementById('preview-tabla').innerHTML = data.slice(0, 5).map((q, i) => `
     <tr>
-      <td>${q.id || 'auto_' + i}</td>
-      <td class="pregunta-cell">${q.Pregunta?.substring(0, 60)}...</td>
+      <td>${q.id || 'auto_'+i}</td>
+      <td class="pregunta-cell">${q.Pregunta?.substring(0,60)}...</td>
       <td><span class="badge badge-nivel-${q.nivel}">${q.nivel}</span></td>
       <td>${q.tema}</td>
-      <td>${q.correcta?.substring(0, 30)}...</td>
+      <td>${q.correcta?.substring(0,30)}...</td>
     </tr>
-  `).join('');
-
-  if (data.length > 5) {
-    tbody.innerHTML += `<tr><td colspan="5" class="empty-row">... y ${data.length - 5} preguntas más</td></tr>`;
-  }
-
-  container.style.display = 'block';
+  `).join('') + (data.length > 5 ? `<tr><td colspan="5" class="empty-row">... y ${data.length-5} más</td></tr>` : '');
+  document.getElementById('preview-container').style.display = 'block';
   document.getElementById('btn-cargar').disabled = false;
 }
 
 async function uploadToFirestore() {
   if (!jsonData) return;
   const btn = document.getElementById('btn-cargar');
-  const progress = document.getElementById('upload-progress');
   btn.disabled = true;
-  progress.style.display = 'block';
-
+  document.getElementById('upload-progress').style.display = 'block';
   let success = 0, errors = 0;
-  const batchSize = 499; // Firestore límite por batch
-
-  // Dividir en chunks
-  for (let i = 0; i < jsonData.length; i += batchSize) {
-    const chunk = jsonData.slice(i, i + batchSize);
+  for (let i = 0; i < jsonData.length; i += 499) {
+    const chunk = jsonData.slice(i, i + 499);
     const batch = writeBatch(db);
-
     chunk.forEach((q, idx) => {
-      const id = q.id || `pregunta_${String(i + idx + 1).padStart(3, '0')}`;
-      const ref = doc(db, 'Preguntas', id);
-      const { id: _id, ...rest } = q; // quitar campo id del objeto
-      batch.set(ref, rest, { merge: true });
+      const id = q.id || `pregunta_${String(i+idx+1).padStart(3,'0')}`;
+      const { id: _id, ...rest } = q;
+      batch.set(doc(db, 'Preguntas', id), rest, { merge: true });
     });
-
-    try {
-      await batch.commit();
-      success += chunk.length;
-    } catch (e) {
-      errors += chunk.length;
-      console.error('Batch error:', e);
-    }
-
-    // Actualizar progress bar
-    const pct = Math.round(((i + chunk.length) / jsonData.length) * 100);
-    document.getElementById('progress-bar').style.width = pct + '%';
+    try { await batch.commit(); success += chunk.length; }
+    catch(e) { errors += chunk.length; }
+    const pct = Math.round(((i+chunk.length)/jsonData.length)*100);
+    document.getElementById('progress-bar').style.width = pct+'%';
     document.getElementById('progress-text').textContent = `Cargando... ${pct}%`;
   }
-
-  document.getElementById('progress-text').textContent =
-    `✅ Completado: ${success} preguntas cargadas${errors > 0 ? `, ${errors} con errores` : ''}`;
-  showToast(`${success} preguntas sembradas en Firestore ✓`, 'success');
-  loadDashboard();
-  btn.disabled = false;
+  document.getElementById('progress-text').textContent = `✅ ${success} preguntas cargadas${errors>0?`, ${errors} con errores`:''}`;
+  showToast(`${success} preguntas sembradas ✓`, 'success');
+  loadDashboard(); btn.disabled = false;
 }
 
 function clearPreview() {
@@ -337,7 +372,6 @@ function clearPreview() {
   document.getElementById('progress-bar').style.width = '0%';
 }
 
-// ── TOAST NOTIFICATIONS ───────────────────────────────────────────────────────
 function showToast(msg, type = 'success') {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
