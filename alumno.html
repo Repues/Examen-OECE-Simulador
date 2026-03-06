@@ -59,7 +59,41 @@
             </div>
           </div>
 
-          <div class="form-group">
+          <!-- Bloque INTERMEDIO: info fija, sin opciones -->
+          <div id="bloque-intermedio" style="display:none;">
+            <div style="background:rgba(43,122,224,0.08); border:1px solid rgba(43,122,224,0.25); border-radius:var(--radius); padding:16px; margin-bottom:16px;">
+              <div style="font-weight:700; color:#60A5FA; margin-bottom:8px;">📘 Plan Intermedio — Composición del simulacro</div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+                <div style="text-align:center; background:rgba(43,122,224,0.1); border-radius:var(--radius); padding:12px;">
+                  <div style="font-family:var(--font-display); font-size:1.8rem; color:#60A5FA;">60%</div>
+                  <div style="font-size:0.8rem; color:var(--gris-suave);">Nivel Intermedio<br><span style="color:rgba(255,255,255,0.5);">~43 preguntas</span></div>
+                </div>
+                <div style="text-align:center; background:rgba(201,168,76,0.08); border-radius:var(--radius); padding:12px;">
+                  <div style="font-family:var(--font-display); font-size:1.8rem; color:var(--dorado);">40%</div>
+                  <div style="font-size:0.8rem; color:var(--gris-suave);">Nivel Avanzado<br><span style="color:rgba(255,255,255,0.5);">~29 preguntas</span></div>
+                </div>
+              </div>
+              <p style="font-size:0.82rem; color:var(--gris-suave); margin-top:12px;">
+                💡 La mezcla con casos avanzados te prepara mejor, pero si buscas especialización al 100% en avanzado, considera el <strong style="color:var(--dorado);">Plan Avanzado</strong>.
+              </p>
+            </div>
+          </div>
+
+          <!-- Bloque AVANZADO: elige el modo -->
+          <div id="bloque-avanzado" style="display:none;">
+            <div class="form-group">
+              <label class="form-label">🎯 Modo del simulacro</label>
+              <select id="modo-examen" class="form-select">
+                <option value="100avanzado">100% Avanzado — máxima dificultad</option>
+                <option value="mixto_avanzado">Mixto — variedad de niveles (recomendado)</option>
+              </select>
+            </div>
+            <div id="info-modo-examen" style="border-radius:var(--radius); padding:14px; margin-bottom:4px; font-size:0.85rem; background:rgba(201,168,76,0.07); border:1px solid rgba(201,168,76,0.2); color:rgba(255,255,255,0.8);">
+              <strong style="color:var(--dorado);">100% Avanzado:</strong> Las 72 preguntas son exclusivamente de nivel avanzado. Ideal para el último repaso antes del examen oficial.
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top:16px;">
             <label class="form-label">Modo de corrección</label>
             <select id="modo-correccion" class="form-select">
               <option value="final">Al finalizar el examen (recomendado)</option>
@@ -68,7 +102,7 @@
           </div>
 
           <div style="background:rgba(201,168,76,0.08); border:1px solid rgba(201,168,76,0.2); border-radius:var(--radius); padding:14px; margin:16px 0; font-size:0.88rem; color:rgba(255,255,255,0.8);">
-            ⚡ <strong>Sin repetición inteligente:</strong> El sistema recuerda qué preguntas ya respondiste y siempre te presenta preguntas nuevas. Cuando hayas visto todas, el ciclo reinicia.
+            ⚡ <strong>Sin repetición inteligente:</strong> El sistema recuerda qué preguntas ya respondiste y siempre te presenta preguntas nuevas. Cuando hayas visto todas, el ciclo reinicia automáticamente.
           </div>
 
           <button id="btn-iniciar-examen" class="btn-primary" style="width:100%; justify-content:center; font-size:1.05rem; padding:16px;">
@@ -223,6 +257,30 @@
 
 <script type="module" src="js/simulacro.js"></script>
 <script type="module">
+  // Mostrar bloque correcto según nivel del alumno
+  import { getSession } from './js/auth.js';
+  const session = getSession();
+  if (session) {
+    if (session.nivel === 'intermedio') {
+      document.getElementById('bloque-intermedio').style.display = 'block';
+    } else {
+      document.getElementById('bloque-avanzado').style.display = 'block';
+    }
+  }
+
+  // Actualizar texto informativo al cambiar modo de examen
+  const modoExamenSel = document.getElementById('modo-examen');
+  const infoModo = document.getElementById('info-modo-examen');
+  const textos = {
+    '100avanzado': '<strong style="color:var(--dorado);">100% Avanzado:</strong> Las 72 preguntas son exclusivamente de nivel avanzado. Ideal para el último repaso antes del examen oficial.',
+    'mixto_avanzado': '<strong style="color:#34D399;">Modo Mixto:</strong> Combina preguntas de ambos niveles con variedad aleatoria cada vez. Perfecto para un repaso completo y sorpresivo.'
+  };
+  if (modoExamenSel) {
+    modoExamenSel.addEventListener('change', () => {
+      if (infoModo) infoModo.innerHTML = textos[modoExamenSel.value] || '';
+    });
+  }
+
   // Lista de conceptos en panel de flashcards
   const terms = [
     'OECE','PAC','Adjudicación Simplificada','Licitación Pública','Concurso Público',
