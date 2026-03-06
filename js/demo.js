@@ -230,7 +230,7 @@ function startDemo(nivel) {
   demoRespuestas = new Array(demoPreguntas.length).fill(null);
 
   // Update tabs
-  document.querySelectorAll('.demo-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.demo-tab-btn, .x-demo-tab').forEach(b => b.classList.remove('active'));
   document.getElementById(`demo-tab-${nivel}`)?.classList.add('active');
 
   renderDemoPregunta();
