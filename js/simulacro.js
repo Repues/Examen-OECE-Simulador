@@ -484,12 +484,22 @@ async function mostrarResultados(correctas, total, porcentaje, tiempoUsado, deta
   if (modoCorreccion === 'final') {
     const revisionHtml = detalle.map((d, i) => {
       const p = preguntasExamen[i];
+      const correctaLetraOrig = p.correcta?.charAt(0);
+      const sustentoTexto = p.correcta?.replace(/^[A-D]\.\s*/, '') || '';
+      // Mapear letra original a etiqueta visual
+      const orden = window._ordenPregunta?.[i] || ['A','B','C','D'];
+      const posVisual = orden.indexOf(correctaLetraOrig);
+      const etqVisual = ['A','B','C','D'][posVisual] ?? correctaLetraOrig;
+      // Misma lógica para la respuesta del alumno
+      const posRespVisual = orden.indexOf(d.respuesta);
+      const etqRespVisual = d.respuesta === 'S/R' ? 'S/R' : (['A','B','C','D'][posRespVisual] ?? d.respuesta);
       return `
         <div class="revision-item ${d.correcto ? 'revision-correcta' : 'revision-incorrecta'}">
           <div class="revision-num">Pregunta ${i + 1} — ${p.tema}</div>
           <div class="revision-pregunta">${p.Pregunta}</div>
-          <div class="revision-respuesta">Tu respuesta: <strong>${d.respuesta}</strong> ${d.correcto ? '✅' : '❌'}</div>
-          ${!d.correcto ? `<div class="revision-correcta-label">Respuesta correcta: <strong>${p.correcta}</strong></div>` : ''}
+          <div class="revision-respuesta">Tu respuesta: <strong>Opción ${etqRespVisual}</strong> — ${p[d.respuesta] || 'Sin responder'} ${d.correcto ? '✅' : '❌'}</div>
+          ${!d.correcto ? `<div class="revision-correcta-label">✓ Correcta: Opción ${etqVisual} — ${p[correctaLetraOrig] || ''}</div>
+          <div style="font-size:.72rem;color:var(--text3);margin-top:4px;line-height:1.5;">📖 ${sustentoTexto}</div>` : ''}
         </div>
       `;
     }).join('');
