@@ -2,14 +2,9 @@
 <html lang="es" data-theme="light">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mi Panel — OECE Simulacro</title>
   <link rel="stylesheet" href="css/styles.css" />
-  <style>
-    @media print {
-      body { display: none !important; }
-    }
-  </style>
 </head>
 <body class="panel-dark">
 
@@ -19,21 +14,18 @@
   <aside class="sidebar">
     <div class="sidebar-brand">
       <div class="navbar-logo" style="margin:0 auto 10px;">OE</div>
-      <div class="navbar-title" style="font-size:0.95rem;" id="alumno-nombre">—</div>
-      <div style="margin-top:4px;">
-        <span class="badge badge-nivel-avanzado" id="alumno-nivel">—</span>
-      </div>
+      <div class="navbar-title" style="font-size:0.9rem;" id="alumno-nombre">—</div>
     </div>
     <ul class="sidebar-nav">
       <li><button class="tab-btn active" data-tab="tab-simulacro">🎯 Simulacro</button></li>
       <li><button class="tab-btn" data-tab="tab-flashcards">📚 Nomenclatura</button></li>
     </ul>
-    <div style="position:absolute; bottom:24px; left:16px; right:16px; display:flex; flex-direction:column; gap:10px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 10px; background:rgba(255,255,255,0.05); border-radius:var(--radius); border:1px solid rgba(255,255,255,0.08);">
-        <span id="theme-icon-panel" style="font-size:0.8rem; color:var(--panel-soft);">🌙 Modo</span>
-        <button class="theme-toggle" id="theme-toggle-panel" title="Cambiar modo"></button>
+    <div style="position:absolute; bottom:20px; left:13px; right:13px; display:flex; flex-direction:column; gap:9px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:7px 11px; background:var(--bg3); border-radius:var(--r); border:1px solid var(--border);">
+        <span id="theme-icon-panel" style="font-size:0.76rem; color:var(--text3);">🌙 Modo</span>
+        <button class="theme-toggle" id="theme-toggle-panel" title="Modo claro / oscuro"></button>
       </div>
-      <button id="btn-logout" class="btn-secondary" style="width:100%; justify-content:center; font-size:0.85rem;">Cerrar sesión</button>
+      <button id="btn-logout" class="btn-secondary" style="width:100%; justify-content:center; font-size:0.82rem;">Cerrar sesión</button>
     </div>
   </aside>
 
@@ -42,6 +34,19 @@
 
     <!-- ── SIMULACRO ──────────────────────────── -->
     <div id="tab-simulacro" class="tab-panel active">
+
+      <!-- PERFIL MODERNO -->
+      <div class="perfil-alumno">
+        <div class="perfil-avatar" id="perfil-inicial">—</div>
+        <div class="perfil-info">
+          <div class="perfil-nombre" id="alumno-nombre-perfil">—</div>
+          <div class="perfil-detalle">
+            <span class="perfil-chip" id="perfil-nivel-chip">—</span>
+            <span class="perfil-chip" style="background:rgba(255,255,255,0.07); color:rgba(255,255,255,0.5);">Ley 32069</span>
+            <span class="perfil-chip" id="perfil-mix-chip" style="display:none;"></span>
+          </div>
+        </div>
+      </div>
 
       <!-- CONFIG -->
       <div id="panel-config">
@@ -68,27 +73,27 @@
             </div>
           </div>
 
-          <!-- Bloque INTERMEDIO: info fija, sin opciones -->
+          <!-- Bloque INTERMEDIO: 50/50 -->
           <div id="bloque-intermedio" style="display:none;">
-            <div style="background:rgba(43,122,224,0.08); border:1px solid rgba(43,122,224,0.25); border-radius:var(--radius); padding:16px; margin-bottom:16px;">
-              <div style="font-weight:700; color:#60A5FA; margin-bottom:8px;">📘 Plan Intermedio — Composición del simulacro</div>
-              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
-                <div style="text-align:center; background:rgba(43,122,224,0.1); border-radius:var(--radius); padding:12px;">
-                  <div style="font-family:var(--font-display); font-size:1.8rem; color:#60A5FA;">60%</div>
-                  <div style="font-size:0.8rem; color:var(--gris-suave);">Nivel Intermedio<br><span style="color:rgba(255,255,255,0.5);">~43 preguntas</span></div>
+            <div style="background:rgba(0,123,255,0.07); border:1px solid rgba(0,123,255,0.2); border-radius:var(--r-lg); padding:16px; margin-bottom:16px;">
+              <div style="font-weight:700; color:#60A5FA; margin-bottom:10px; font-size:0.88rem;">📘 Plan Intermedio — Composición del simulacro</div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+                <div style="text-align:center; background:rgba(0,123,255,0.1); border-radius:var(--r); padding:12px; border:1px solid rgba(0,123,255,0.15);">
+                  <div style="font-family:var(--font-d); font-size:1.8rem; color:#60A5FA;">50%</div>
+                  <div style="font-size:0.76rem; color:var(--text3);">Nivel Intermedio<br><span style="color:rgba(255,255,255,0.4); font-size:0.7rem;">36 preguntas</span></div>
                 </div>
-                <div style="text-align:center; background:rgba(201,168,76,0.08); border-radius:var(--radius); padding:12px;">
-                  <div style="font-family:var(--font-display); font-size:1.8rem; color:var(--dorado);">40%</div>
-                  <div style="font-size:0.8rem; color:var(--gris-suave);">Nivel Avanzado<br><span style="color:rgba(255,255,255,0.5);">~29 preguntas</span></div>
+                <div style="text-align:center; background:rgba(16,185,129,0.08); border-radius:var(--r); padding:12px; border:1px solid rgba(16,185,129,0.15);">
+                  <div style="font-family:var(--font-d); font-size:1.8rem; color:#34D399;">50%</div>
+                  <div style="font-size:0.76rem; color:var(--text3);">Nivel Avanzado<br><span style="color:rgba(255,255,255,0.4); font-size:0.7rem;">36 preguntas</span></div>
                 </div>
               </div>
-              <p style="font-size:0.82rem; color:var(--gris-suave); margin-top:12px;">
-                💡 La mezcla con casos avanzados te prepara mejor, pero si buscas especialización al 100% en avanzado, considera el <strong style="color:var(--dorado);">Plan Avanzado</strong>.
+              <p style="font-size:0.8rem; color:var(--text3); line-height:1.5;">
+                💡 La combinación 50/50 te expone a ambos niveles de dificultad de forma balanceada, preparándote mejor para el examen real.
               </p>
             </div>
           </div>
 
-          <!-- Bloque AVANZADO: elige el modo -->
+          <!-- Bloque AVANZADO -->
           <div id="bloque-avanzado" style="display:none;">
             <div class="form-group">
               <label class="form-label">🎯 Modo del simulacro</label>
@@ -97,8 +102,8 @@
                 <option value="mixto_avanzado">Mixto — variedad de niveles (recomendado)</option>
               </select>
             </div>
-            <div id="info-modo-examen" style="border-radius:var(--radius); padding:14px; margin-bottom:4px; font-size:0.85rem; background:rgba(201,168,76,0.07); border:1px solid rgba(201,168,76,0.2); color:rgba(255,255,255,0.8);">
-              <strong style="color:var(--dorado);">100% Avanzado:</strong> Las 72 preguntas son exclusivamente de nivel avanzado. Ideal para el último repaso antes del examen oficial.
+            <div id="info-modo-examen" style="border-radius:var(--r); padding:13px 15px; margin-bottom:4px; font-size:0.84rem; background:rgba(0,123,255,0.07); border:1px solid rgba(0,123,255,0.18); color:var(--text2);">
+              <strong style="color:#60A5FA;">100% Avanzado:</strong> Las 72 preguntas son exclusivamente de nivel avanzado. Ideal para el último repaso antes del examen oficial.
             </div>
           </div>
 
@@ -106,75 +111,73 @@
             <label class="form-label">Modo de corrección</label>
             <select id="modo-correccion" class="form-select">
               <option value="final">Al finalizar el examen (recomendado)</option>
-              <option value="momento">En el momento (ver respuesta tras cada pregunta)</option>
+              <option value="momento">En el momento — ver respuesta tras cada pregunta</option>
             </select>
           </div>
 
-          <div style="background:rgba(201,168,76,0.08); border:1px solid rgba(201,168,76,0.2); border-radius:var(--radius); padding:14px; margin:16px 0; font-size:0.88rem; color:rgba(255,255,255,0.8);">
-            ⚡ <strong>Sin repetición inteligente:</strong> El sistema recuerda qué preguntas ya respondiste y siempre te presenta preguntas nuevas. Cuando hayas visto todas, el ciclo reinicia automáticamente.
+          <div style="background:var(--bg3); border:1px solid var(--border); border-radius:var(--r); padding:13px; margin:14px 0; font-size:0.84rem; color:var(--text3);">
+            ⚡ <strong style="color:var(--text2);">Sin repetición inteligente:</strong> El sistema recuerda qué preguntas ya respondiste. Cuando hayas visto todas, el ciclo reinicia.
           </div>
 
-          <button id="btn-iniciar-examen" class="btn-primary" style="width:100%; justify-content:center; font-size:1.05rem; padding:16px;">
+          <button id="btn-iniciar-examen" class="btn-primary" style="width:100%; justify-content:center; font-size:1rem; padding:15px;">
             🚀 Iniciar Simulacro
           </button>
         </div>
       </div>
 
-      <!-- EXAMEN ACTIVO -->
+      <!-- EXAMEN ACTIVO — tarjeta flotante con overlay -->
       <div id="panel-examen" style="display:none;">
-
-        <!-- Header del examen -->
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+        <!-- Header mínimo fuera de la tarjeta -->
+        <div class="examen-header">
           <div>
-            <span style="font-size:0.85rem; color:var(--gris-suave);">Pregunta</span>
-            <span id="num-pregunta" style="font-family:var(--font-display); font-size:1.6rem; color:var(--dorado); margin:0 4px;">1</span>
-            <span style="font-size:0.85rem; color:var(--gris-suave);">de <span id="examen-total">72</span></span>
+            <h2 class="page-title" style="font-size:1.2rem;">Examen en curso</h2>
+            <p class="page-sub" style="font-size:0.8rem;">Ley de Contrataciones N° 32069</p>
           </div>
-          <div id="timer" class="timer">120:00</div>
+          <button id="btn-finalizar-top" class="btn-finalizar-card" onclick="window._finalizarExamen && window._finalizarExamen()">
+            Finalizar examen
+          </button>
         </div>
 
-        <!-- Barra de progreso -->
-        <div class="progreso-bar-container" style="margin-bottom:20px;">
-          <div id="progreso-bar" class="progreso-bar" style="width:0%"></div>
-        </div>
+        <!-- Overlay + tarjeta flotante -->
+        <div class="examen-overlay" id="examen-overlay">
+          <div class="examen-card" id="examen-card">
 
-        <!-- Layout: pregunta + mapa -->
-        <div class="examen-layout">
+            <!-- Cabecera de la tarjeta -->
+            <div class="card-header">
+              <div class="card-counter">
+                Pregunta <span id="num-pregunta">1</span> de <span id="examen-total">72</span>
+              </div>
+              <div class="card-timer" id="timer">120:00</div>
+            </div>
 
-          <!-- Pregunta -->
-          <div>
-            <div style="margin-bottom:14px;">
+            <!-- Barra de progreso -->
+            <div class="card-progress">
+              <div class="card-progress-fill" id="progreso-bar" style="width:0%"></div>
+            </div>
+
+            <!-- Tema -->
+            <div class="card-tema">
               <span id="tema-pregunta" class="badge badge-nivel-intermedio"></span>
             </div>
-            <p id="texto-pregunta" style="font-size:1.05rem; line-height:1.7; margin-bottom:20px;"></p>
 
-            <div id="opciones-container"></div>
+            <!-- Pregunta -->
+            <p id="texto-pregunta" class="card-pregunta"></p>
 
+            <!-- Opciones -->
+            <div class="opciones-grid" id="opciones-container"></div>
+
+            <!-- Feedback -->
             <div id="feedback-momento" style="display:none;"></div>
 
-            <div style="display:flex; gap:12px; margin-top:24px; justify-content:space-between;">
-              <button id="btn-anterior" class="btn-secondary" disabled>← Anterior</button>
-              <button id="btn-siguiente" class="btn-primary">Siguiente →</button>
+            <!-- Navegación -->
+            <div class="card-nav">
+              <button id="btn-anterior" class="btn-secondary" style="font-size:0.86rem; padding:9px 18px;" disabled>← Anterior</button>
+              <button class="btn-finalizar-card" id="btn-omitir-info" style="font-size:0.76rem; opacity:0.6; cursor:default; border:none; background:none; color:var(--text3); padding:0;">
+                Sin responder: <span id="omitidas-count">0</span>
+              </button>
+              <button id="btn-siguiente" class="btn-primary" style="font-size:0.86rem; padding:9px 18px;">Siguiente →</button>
             </div>
-          </div>
 
-          <!-- Mapa de preguntas -->
-          <div>
-            <div class="card">
-              <h4 style="font-size:0.85rem; color:var(--gris-suave); margin-bottom:14px; text-transform:uppercase; letter-spacing:0.08em;">Mapa de preguntas</h4>
-              <div id="mapa-preguntas" class="mapa-preguntas"></div>
-              <div style="margin-top:16px; font-size:0.78rem; color:var(--gris-suave);">
-                <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
-                  <div style="width:14px;height:14px;background:var(--azul-bright);border-radius:3px;"></div> Actual
-                </div>
-                <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
-                  <div style="width:14px;height:14px;background:rgba(16,185,129,0.3);border-radius:3px;"></div> Respondida
-                </div>
-                <div style="display:flex; align-items:center; gap:6px;">
-                  <div style="width:14px;height:14px;background:rgba(255,255,255,0.07);border-radius:3px;"></div> Sin responder
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -182,8 +185,8 @@
       <!-- RESULTADOS -->
       <div id="panel-resultados" style="display:none;">
         <div class="resultado-header">
-          <div id="resultado-icon" style="font-size:4rem; margin-bottom:12px;"></div>
-          <h2 id="resultado-titulo" style="margin-bottom:12px;"></h2>
+          <div id="resultado-icon" style="font-size:3.2rem; margin-bottom:10px;"></div>
+          <h2 id="resultado-titulo" style="margin-bottom:10px;"></h2>
           <div class="resultado-stats">
             <div class="stat-box">
               <div class="stat-box-num" id="resultado-puntaje">—</div>
@@ -200,26 +203,26 @@
           </div>
         </div>
 
-        <div class="card" style="margin-bottom:20px;">
-          <h3 style="margin-bottom:20px; font-size:1rem;">Análisis por tema</h3>
+        <div class="card" style="margin-bottom:18px;">
+          <h3 style="margin-bottom:18px; font-size:0.95rem;">Análisis por tema</h3>
           <div id="analisis-temas"></div>
         </div>
 
-        <div class="card" style="margin-bottom:20px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:8px;">
-            <h3 style="font-size:1rem; margin:0;">🌡️ Mapa de calor — Evolución por tema</h3>
-            <span style="font-size:0.78rem; color:var(--gris-suave);">Compara tu sesión actual con tu historial</span>
+        <div class="card" style="margin-bottom:18px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:7px;">
+            <h3 style="font-size:0.95rem; margin:0;">🌡️ Mapa de calor — Evolución por tema</h3>
+            <span style="font-size:0.74rem; color:var(--text3);">Historial de 8 sesiones</span>
           </div>
           <div id="mapa-calor-container"></div>
         </div>
 
-        <div class="card" style="margin-bottom:20px;">
-          <h3 style="margin-bottom:16px; font-size:1rem;">Revisión de respuestas</h3>
+        <div class="card" style="margin-bottom:18px;">
+          <h3 style="margin-bottom:14px; font-size:0.95rem;">Revisión de respuestas</h3>
           <div id="revision-respuestas"></div>
         </div>
 
-        <div style="text-align:center; padding:20px;">
-          <button id="btn-nuevo-examen" class="btn-primary" style="font-size:1.05rem; padding:16px 36px;">
+        <div style="text-align:center; padding:18px;">
+          <button id="btn-nuevo-examen" class="btn-primary" style="font-size:0.98rem; padding:14px 32px;">
             🔄 Nuevo simulacro
           </button>
         </div>
@@ -232,7 +235,7 @@
       <div class="page-header">
         <div>
           <h2 class="page-title">Nomenclatura OECE</h2>
-          <p class="page-sub">Conceptos clave de la Ley 32069 · Haz clic en la tarjeta para voltear</p>
+          <p class="page-sub">Conceptos clave · Clic en la tarjeta para voltear</p>
         </div>
       </div>
 
@@ -241,7 +244,7 @@
           <div class="flashcard-face flashcard-front">
             <div class="card-label">Término</div>
             <div id="card-front-text" class="card-term">—</div>
-            <div class="card-hint">👆 Clic para ver definición</div>
+            <div style="font-size:0.7rem; opacity:0.6; margin-top:10px;">👆 Clic para ver definición</div>
           </div>
           <div class="flashcard-face flashcard-back">
             <div class="card-label">Definición</div>
@@ -250,19 +253,16 @@
         </div>
       </div>
 
-      <div class="flashcard-nav">
-        <button id="btn-prev-card">← Anterior</button>
-        <span id="card-counter" class="card-counter">1 / 18</span>
-        <button id="btn-next-card">Siguiente →</button>
-        <button id="btn-flip" class="btn-secondary" style="padding:10px 18px;">↺ Voltear</button>
+      <div class="flashcard-nav" style="margin-top:22px;">
+        <button id="btn-prev-card" class="btn-secondary" style="padding:9px 18px; font-size:0.84rem;">← Anterior</button>
+        <span id="card-counter" style="font-size:0.84rem; color:var(--text3); padding:9px 12px;">1 / 18</span>
+        <button id="btn-next-card" class="btn-secondary" style="padding:9px 18px; font-size:0.84rem;">Siguiente →</button>
+        <button id="btn-flip" class="btn-blue" style="padding:9px 16px; font-size:0.84rem;">↺ Voltear</button>
       </div>
 
-      <!-- Lista de todos los términos -->
-      <div class="card" style="margin-top:40px;">
-        <h3 style="margin-bottom:20px; font-size:1rem;">Todos los conceptos</h3>
-        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:10px;" id="lista-conceptos">
-          <!-- Generado dinámicamente por JS -->
-        </div>
+      <div class="card" style="margin-top:36px;">
+        <h3 style="margin-bottom:18px; font-size:0.95rem;">Todos los conceptos</h3>
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:8px;" id="lista-conceptos"></div>
       </div>
     </div>
 
@@ -273,54 +273,59 @@
 <div id="toast" class="toast"></div>
 
 <script type="module" src="js/simulacro.js"></script>
+
 <script type="module">
-  // Mostrar bloque correcto según nivel del alumno
   import { getSession } from './js/auth.js';
   const session = getSession();
   if (session) {
+    // Perfil
+    const inicial = session.nombre ? session.nombre.charAt(0).toUpperCase() : 'A';
+    document.getElementById('perfil-inicial').textContent = inicial;
+    document.getElementById('alumno-nombre-perfil').textContent = session.nombre || session.dni;
+
+    const nivelChip = document.getElementById('perfil-nivel-chip');
+    const mixChip   = document.getElementById('perfil-mix-chip');
+
     if (session.nivel === 'intermedio') {
       document.getElementById('bloque-intermedio').style.display = 'block';
+      nivelChip.textContent = '📘 Intermedio';
+      nivelChip.classList.add('nivel-int');
+      mixChip.textContent = '50% Int · 50% Adv';
+      mixChip.style.display = 'inline-block';
     } else {
       document.getElementById('bloque-avanzado').style.display = 'block';
+      nivelChip.textContent = '📗 Avanzado';
+      nivelChip.classList.add('nivel-adv');
     }
+
+    // Info dinámica modo examen
+    const modoSel  = document.getElementById('modo-examen');
+    const infoModo = document.getElementById('info-modo-examen');
+    const textos = {
+      '100avanzado':   '<strong style="color:#60A5FA;">100% Avanzado:</strong> Las 72 preguntas son de nivel avanzado. Ideal para el último repaso antes del examen.',
+      'mixto_avanzado':'<strong style="color:#34D399;">Modo Mixto:</strong> Combina preguntas de ambos niveles con variedad aleatoria. Perfecto para repaso completo.'
+    };
+    if (modoSel) modoSel.addEventListener('change', () => { if (infoModo) infoModo.innerHTML = textos[modoSel.value] || ''; });
   }
 
-  // Actualizar texto informativo al cambiar modo de examen
-  const modoExamenSel = document.getElementById('modo-examen');
-  const infoModo = document.getElementById('info-modo-examen');
-  const textos = {
-    '100avanzado': '<strong style="color:var(--dorado);">100% Avanzado:</strong> Las 72 preguntas son exclusivamente de nivel avanzado. Ideal para el último repaso antes del examen oficial.',
-    'mixto_avanzado': '<strong style="color:#34D399;">Modo Mixto:</strong> Combina preguntas de ambos niveles con variedad aleatoria cada vez. Perfecto para un repaso completo y sorpresivo.'
-  };
-  if (modoExamenSel) {
-    modoExamenSel.addEventListener('change', () => {
-      if (infoModo) infoModo.innerHTML = textos[modoExamenSel.value] || '';
-    });
-  }
-
-  // Lista de conceptos en panel de flashcards
-  const terms = [
-    'OECE','PAC','Adjudicación Simplificada','Licitación Pública','Concurso Público',
-    'Contratación Directa','RNP','Expediente de Contratación','Valor Referencial',
-    'Garantía de Fiel Cumplimiento','Penalidad por Mora','Subasta Inversa Electrónica',
-    'Convenio Marco','Adicional de Obra','Árbitro','UIT','Comité de Selección','Bases Integradas'
-  ];
+  // Lista conceptos en flashcards
+  const terms = ['OECE','PAC','Adjudicación Simplificada','Licitación Pública','Concurso Público','Contratación Directa','RNP','Expediente de Contratación','Valor Referencial','Garantía de Fiel Cumplimiento','Penalidad por Mora','Subasta Inversa Electrónica','Convenio Marco','Adicional de Obra','Árbitro','UIT','Comité de Selección','Bases Integradas'];
   const container = document.getElementById('lista-conceptos');
   if (container) {
     container.innerHTML = terms.map((t, i) => `
-      <div onclick="irFlashcard(${i})" style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); border-radius:8px; padding:10px 14px; font-size:0.85rem; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.borderColor='rgba(201,168,76,0.3)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.07)'">
-        <span style="color:var(--rojo-oece); font-weight:700; margin-right:6px;">${String(i+1).padStart(2,'0')}.</span>${t}
-      </div>
-    `).join('');
+      <div onclick="window.irFlashcard && window.irFlashcard(${i})" style="background:var(--bg3); border:1px solid var(--border); border-radius:var(--r); padding:9px 13px; font-size:0.82rem; cursor:pointer; transition:all 0.18s; color:var(--text2);" onmouseover="this.style.borderColor='var(--azul)'; this.style.color='var(--azul)'" onmouseout="this.style.borderColor='var(--border)'; this.style.color='var(--text2)'">
+        <span style="color:var(--rojo); font-weight:700; margin-right:5px;">${String(i+1).padStart(2,'0')}.</span>${t}
+      </div>`).join('');
   }
+</script>
+
 <script>
-// Theme toggle — paneles usan data-theme en <html> para ajustes secundarios
-// pero el panel-dark del body mantiene el oscuro siempre
+// Dark/light toggle — panel mantiene oscuro siempre, pero el toggle
+// ajusta variantes más profundas vía data-theme en html
 (function() {
-  const html   = document.documentElement;
-  const saved  = localStorage.getItem('oece-theme') || 'light';
+  const html  = document.documentElement;
+  const saved = localStorage.getItem('oece-theme') || 'light';
   html.setAttribute('data-theme', saved);
-  // Esperamos el DOM
   document.addEventListener('DOMContentLoaded', () => {
     const toggle = document.getElementById('theme-toggle-panel');
     const icon   = document.getElementById('theme-icon-panel');
@@ -335,5 +340,6 @@
   });
 })();
 </script>
+
 </body>
 </html>
