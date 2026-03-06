@@ -257,16 +257,6 @@ function seleccionarRespuesta(idx, letra, btnClicked) {
   }
 
   renderMapa();
-
-  // Auto-avanzar después de 2s si hay siguiente — cancelable si el usuario navega manualmente
-  if (modoCorreccion === 'momento' && currentIndex < preguntasExamen.length - 1) {
-    window._autoAvanceTimer = setTimeout(() => {
-      window._autoAvanceTimer = null;
-      currentIndex++;
-      renderPregunta(currentIndex);
-      renderMapa();
-    }, 2000);
-  }
 }
 
 function mostrarFeedbackMomento(idx) {
