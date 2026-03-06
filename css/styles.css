@@ -817,30 +817,69 @@ tbody tr:hover td { background: rgba(255,255,255,0.03); }
   /* Login */
   .login-card { padding: 32px 20px; }
 
-  /* Dashboard sidebar → bottom nav en móvil */
-  .dashboard-layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  /* Dashboard — navbar superior en móvil (compatible iOS Safari) */
+  .dashboard-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
   .sidebar {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    height: auto; z-index: 100;
+    position: sticky; top: 0;
+    height: auto;
+    width: 100%;
+    z-index: 100;
     border-right: none;
-    border-top: 1px solid rgba(255,255,255,0.1);
-    padding: 8px 12px 12px;
-    display: flex; flex-direction: column; gap: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding: 0 16px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 56px;
   }
-  .sidebar-brand { display: none; } /* ocultar logo en bottom nav */
-  .sidebar-nav {
-    display: flex; flex-direction: row; gap: 4px;
-    justify-content: space-around;
+  .sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    border-bottom: none;
+    margin-bottom: 0;
+    text-align: left;
   }
-  .sidebar-nav li { flex: 1; }
-  .sidebar-nav .tab-btn {
-    width: 100%; padding: 8px 4px; font-size: 0.72rem;
-    text-align: center; flex-direction: column; gap: 2px;
+  .sidebar-brand .navbar-logo {
+    width: 32px; height: 32px;
+    font-size: 0.8rem;
+    margin: 0;
   }
-  .sidebar > div:last-child { display: none; } /* ocultar btn cerrar sesión del sidebar */
+  .sidebar-brand .navbar-title { font-size: 0.85rem; }
+  /* Ocultar badge de nivel en móvil del brand */
+  .sidebar-brand > div:last-child { display: none; }
 
-  /* Agregar padding al contenido para que no tape el bottom nav */
-  .main-content { padding: 16px 12px 90px; }
+  .sidebar-nav {
+    display: flex;
+    flex-direction: row;
+    gap: 4px;
+    list-style: none;
+  }
+  .sidebar-nav li { margin-bottom: 0; }
+  .sidebar-nav .tab-btn {
+    padding: 8px 14px;
+    font-size: 0.8rem;
+    border-radius: var(--radius);
+  }
+  /* Botón cerrar sesión en la navbar móvil */
+  .sidebar > div:last-child {
+    display: block;
+    position: static;
+  }
+  .sidebar > div:last-child button {
+    padding: 7px 12px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  .main-content { padding: 16px 14px 32px; flex: 1; }
 
   /* Examen */
   .examen-layout { grid-template-columns: 1fr; gap: 16px; }
@@ -919,18 +958,4 @@ tbody tr:hover td { background: rgba(255,255,255,0.03); }
   .modal form > div[style*="grid"] { grid-template-columns: 1fr !important; }
 
   .toast { left: 16px; right: 16px; max-width: 100%; }
-}
-
-/* ── CERRAR SESIÓN FLOTANTE EN MÓVIL ─────────────────────────── */
-@media (max-width: 480px) {
-  .logout-mobile {
-    position: fixed; top: 12px; right: 16px;
-    background: rgba(200,16,46,0.15);
-    border: 1px solid rgba(200,16,46,0.3);
-    color: var(--blanco); border-radius: var(--radius-sm);
-    padding: 6px 12px; font-size: 0.75rem; cursor: pointer;
-    font-family: var(--font-body); z-index: 200;
-    transition: var(--transition);
-  }
-  .logout-mobile:hover { background: var(--rojo-oece); }
 }
