@@ -1,122 +1,469 @@
 <!DOCTYPE html>
 <html lang="es" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mi Panel — OECE Simulacro</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mi Panel — OECE</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css" />
-  <script>
-    // Aplicar tema guardado ANTES de pintar para evitar flash
-    (function(){
-      const t=localStorage.getItem('oece-theme')||'dark';
-      document.documentElement.setAttribute('data-theme',t);
-    })();
-  </script>
+  <script>(function(){const t=localStorage.getItem('oece-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();</script>
+  <style>
+    /* ── VARIABLES ── */
+    :root {
+      --bg:#000; --bg2:#0A0A0A; --bg3:#111; --bg4:#181818;
+      --border:#1F1F1F; --border2:#2A2A2A;
+      --text:#fff; --text2:#ccc; --text3:#888; --text4:#555;
+      --red:#C8191E; --blue:#3B82F6; --green:#10B981; --yellow:#F59E0B;
+      --r:8px; --r2:12px; --r3:16px;
+    }
+    [data-theme="light"] {
+      --bg:#fff; --bg2:#F8F8F8; --bg3:#F0F0F0; --bg4:#E8E8E8;
+      --border:#E5E5E5; --border2:#D0D0D0;
+      --text:#000; --text2:#333; --text3:#666; --text4:#999;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;}
+    body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);
+      -webkit-font-smoothing:antialiased;transition:background .3s,color .3s;}
+    body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+      background-image:linear-gradient(var(--border) 1px,transparent 1px),
+        linear-gradient(90deg,var(--border) 1px,transparent 1px);
+      background-size:60px 60px;opacity:.3;}
+
+    /* ── LAYOUT ── */
+    .layout{display:flex;min-height:100vh;position:relative;z-index:1;}
+
+    /* ── SIDEBAR ── */
+    .sidebar{
+      width:200px;flex-shrink:0;
+      background:var(--bg2);border-right:1px solid var(--border);
+      display:flex;flex-direction:column;
+      position:sticky;top:0;height:100vh;overflow-y:auto;
+    }
+    .sb-top{padding:16px 14px 12px;border-bottom:1px solid var(--border);}
+    .sb-logo{display:flex;align-items:center;gap:9px;margin-bottom:10px;}
+    .sb-logo-icon{width:28px;height:28px;background:var(--red);border-radius:6px;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:800;font-size:.7rem;color:#fff;flex-shrink:0;}
+    .sb-name{font-size:.82rem;font-weight:600;color:var(--text);letter-spacing:-.01em;}
+    .sb-chips{display:flex;flex-wrap:wrap;gap:4px;}
+    .sb-chip{font-size:.6rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+      padding:2px 7px;border-radius:20px;border:1px solid var(--border2);color:var(--text3);}
+    .sb-chip.adv{border-color:rgba(16,185,129,.4);color:#34D399;}
+    .sb-chip.int{border-color:rgba(59,130,246,.4);color:#60A5FA;}
+
+    .sb-nav{flex:1;padding:10px 8px;}
+    .nav-btn{
+      width:100%;display:flex;align-items:center;gap:8px;
+      padding:9px 10px;border-radius:var(--r);border:none;background:transparent;
+      font-family:'Inter',sans-serif;font-size:.8rem;font-weight:500;
+      color:var(--text3);cursor:pointer;transition:all .15s;text-align:left;
+    }
+    .nav-btn:hover{background:var(--bg3);color:var(--text);}
+    .nav-btn.active{background:var(--text);color:var(--bg);}
+
+    .sb-bottom{padding:10px 8px;border-top:1px solid var(--border);}
+    .sb-toggle-row{display:flex;align-items:center;justify-content:space-between;
+      padding:7px 10px;border-radius:var(--r);margin-bottom:6px;}
+    .sb-toggle-label{font-size:.7rem;color:var(--text3);}
+    .x-toggle{width:32px;height:18px;background:var(--border2);border:1px solid var(--border2);
+      border-radius:20px;cursor:pointer;position:relative;transition:background .2s;}
+    .x-toggle::after{content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;
+      background:var(--text3);border-radius:50%;transition:transform .2s;}
+    [data-theme="light"] .x-toggle{background:#000;border-color:#000;}
+    [data-theme="light"] .x-toggle::after{transform:translateX(14px);background:#fff;}
+    .btn-logout{width:100%;padding:8px;border-radius:var(--r);border:1px solid var(--border);
+      background:transparent;color:var(--text3);font-family:'Inter',sans-serif;
+      font-size:.74rem;cursor:pointer;transition:all .15s;}
+    .btn-logout:hover{border-color:var(--red);color:var(--red);}
+
+    /* ── MAIN ── */
+    .main{flex:1;min-width:0;padding:20px 24px;overflow-y:auto;}
+
+    /* ── PERFIL COMPACTO ── */
+    .perfil-bar{
+      display:flex;align-items:center;gap:12px;
+      padding:14px 18px;border:1px solid var(--border);border-radius:var(--r2);
+      background:var(--bg2);margin-bottom:18px;
+    }
+    .perfil-av{width:38px;height:38px;background:var(--red);border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:800;font-size:.95rem;color:#fff;flex-shrink:0;}
+    .perfil-name{font-size:.95rem;font-weight:600;color:var(--text);letter-spacing:-.01em;}
+    .perfil-detail{font-size:.7rem;color:var(--text3);margin-top:2px;}
+
+    /* ── TABS ── */
+    .tabs{display:flex;gap:2px;background:var(--bg3);border-radius:var(--r);
+      padding:3px;margin-bottom:18px;}
+    .tab-btn{flex:1;padding:8px;border:none;background:transparent;border-radius:6px;
+      font-family:'Inter',sans-serif;font-size:.78rem;font-weight:500;
+      color:var(--text3);cursor:pointer;transition:all .15s;}
+    .tab-btn.active{background:var(--text);color:var(--bg);font-weight:600;}
+    .tab-panel{display:none;}
+    .tab-panel.active{display:block;}
+
+    /* ── CONFIG CARD ── */
+    .cfg-card{background:var(--bg2);border:1px solid var(--border);
+      border-radius:var(--r2);padding:20px;max-width:560px;}
+    .cfg-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px;}
+    .cfg-stat{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);
+      padding:12px;text-align:center;}
+    .cfg-stat-num{font-size:1.4rem;font-weight:700;color:var(--blue);letter-spacing:-.02em;}
+    .cfg-stat-label{font-size:.62rem;color:var(--text3);text-transform:uppercase;
+      letter-spacing:.08em;margin-top:2px;}
+
+    .form-group{margin-bottom:12px;}
+    .form-label{display:block;font-size:.65rem;font-weight:700;letter-spacing:.1em;
+      text-transform:uppercase;color:var(--text3);margin-bottom:6px;}
+    .form-select{width:100%;background:var(--bg3);border:1px solid var(--border);
+      border-radius:var(--r);padding:10px 12px;color:var(--text);
+      font-family:'Inter',sans-serif;font-size:.84rem;transition:border-color .2s;}
+    .form-select:focus{outline:none;border-color:var(--text);}
+    .form-select option{background:var(--bg2);}
+    [data-theme="light"] .form-select option{background:#fff;}
+
+    .info-box{border-radius:var(--r);padding:10px 13px;margin-bottom:10px;
+      font-size:.8rem;color:var(--text2);line-height:1.5;
+      background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.18);}
+    .info-box strong{color:#60A5FA;}
+    [data-theme="light"] .info-box strong{color:var(--blue);}
+    .anti-rep-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);
+      padding:10px 13px;margin:12px 0;font-size:.78rem;color:var(--text3);}
+    .anti-rep-box strong{color:var(--text2);}
+
+    .btn-iniciar{
+      width:100%;padding:14px;border:none;border-radius:var(--r);
+      background:var(--red);color:#fff;
+      font-family:'Inter',sans-serif;font-size:.92rem;font-weight:700;
+      cursor:pointer;transition:opacity .2s;display:flex;align-items:center;
+      justify-content:center;gap:8px;
+    }
+    .btn-iniciar:hover{opacity:.88;}
+    .btn-iniciar:disabled{opacity:.5;cursor:not-allowed;}
+
+    /* Bloque intermedio */
+    .mix-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+    .mix-item{text-align:center;background:var(--bg3);border:1px solid var(--border);
+      border-radius:var(--r);padding:12px;}
+    .mix-pct{font-size:1.6rem;font-weight:700;letter-spacing:-.02em;}
+    .mix-label{font-size:.65rem;color:var(--text3);margin-top:3px;}
+
+    /* ── EXAMEN OVERLAY ── */
+    .exam-overlay{
+      display:none;position:fixed;inset:0;z-index:500;
+      background:rgba(0,0,0,.9);backdrop-filter:blur(12px);
+      align-items:flex-start;justify-content:center;padding:0;
+    }
+    .exam-shell{
+      width:100%;max-width:700px;height:100vh;
+      display:flex;flex-direction:column;
+      background:var(--bg2);border-left:1px solid var(--border);
+      border-right:1px solid var(--border);
+    }
+
+    /* Barra top del examen */
+    .exam-topbar{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:12px 18px;border-bottom:1px solid var(--border);
+      background:var(--bg2);flex-shrink:0;gap:10px;
+    }
+    .exam-counter{
+      font-size:.78rem;color:var(--text3);
+      display:flex;align-items:center;gap:6px;
+    }
+    .exam-counter strong{font-size:1rem;font-weight:700;color:var(--text);}
+
+    /* TIMER BONITO */
+    .exam-timer{
+      display:flex;align-items:center;gap:6px;
+      background:var(--bg3);border:1px solid var(--border2);
+      border-radius:var(--r);padding:7px 14px;
+    }
+    .timer-icon{font-size:.85rem;}
+    .timer-digits{
+      font-family:'Inter',sans-serif;font-size:1.1rem;font-weight:700;
+      color:var(--text);letter-spacing:.05em;
+      font-variant-numeric:tabular-nums;
+    }
+    .exam-timer.warn{border-color:rgba(200,25,30,.5);background:rgba(200,25,30,.08);}
+    .exam-timer.warn .timer-digits{color:var(--red);}
+    .exam-timer.warn .timer-icon{animation:pulseIcon .8s infinite;}
+    @keyframes pulseIcon{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+    .btn-fin-top{
+      background:transparent;color:var(--text3);
+      border:1px solid var(--border2);border-radius:var(--r);
+      padding:6px 13px;font-family:'Inter',sans-serif;font-size:.74rem;
+      cursor:pointer;transition:all .15s;white-space:nowrap;
+    }
+    .btn-fin-top:hover{border-color:var(--red);color:var(--red);}
+
+    /* Barra progreso */
+    .exam-progress{height:3px;background:var(--bg3);flex-shrink:0;}
+    .exam-progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--red));
+      transition:width .5s;}
+
+    /* Cuerpo de la pregunta */
+    .exam-body{flex:1;overflow-y:auto;padding:20px 20px 10px;}
+    .exam-tema{display:inline-block;font-size:.65rem;font-weight:600;
+      letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;
+      border-radius:20px;background:rgba(59,130,246,.12);color:#60A5FA;
+      margin-bottom:14px;}
+    [data-theme="light"] .exam-tema{background:rgba(59,130,246,.1);color:var(--blue);}
+    .exam-pregunta{font-size:.98rem;line-height:1.75;font-weight:500;
+      color:var(--text);margin-bottom:18px;}
+
+    /* Opciones */
+    .opciones-grid{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+    .opcion-btn{
+      width:100%;display:flex;align-items:flex-start;gap:11px;
+      background:var(--bg3);border:1.5px solid var(--border);
+      border-radius:var(--r2);padding:12px 15px;
+      color:var(--text);font-family:'Inter',sans-serif;font-size:.86rem;
+      cursor:pointer;transition:all .15s;text-align:left;
+    }
+    .opcion-btn:hover:not(:disabled){border-color:var(--text2);background:var(--bg4);}
+    .opcion-btn:disabled{cursor:default;}
+    .opcion-btn.selected{border-color:var(--blue);background:rgba(59,130,246,.1);}
+    .opcion-btn.correcta{border-color:var(--green)!important;background:rgba(16,185,129,.1)!important;}
+    .opcion-btn.incorrecta{border-color:var(--red)!important;background:rgba(200,25,30,.08)!important;}
+    .opcion-letra{
+      width:28px;height:28px;border-radius:7px;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:700;font-size:.75rem;background:var(--bg4);
+      border:1px solid var(--border2);color:var(--text3);transition:all .15s;
+    }
+    .opcion-btn.selected  .opcion-letra{background:var(--blue);border-color:var(--blue);color:#fff;}
+    .opcion-btn.correcta  .opcion-letra{background:var(--green)!important;border-color:var(--green)!important;color:#fff!important;}
+    .opcion-btn.incorrecta .opcion-letra{background:var(--red)!important;border-color:var(--red)!important;color:#fff!important;}
+    .opcion-texto{line-height:1.5;padding-top:2px;}
+
+    /* Feedback */
+    .feedback-box{border-radius:var(--r);padding:12px 15px;animation:slideUp .2s ease;}
+    @keyframes slideUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+    .feedback-correcto{background:rgba(16,185,129,.1);border-left:3px solid var(--green);}
+    .feedback-incorrecto{background:rgba(200,25,30,.08);border-left:3px solid var(--red);}
+    .feedback-header{font-weight:700;margin-bottom:4px;font-size:.84rem;}
+    .feedback-sustento{font-size:.78rem;color:var(--text2);line-height:1.6;}
+
+    /* Nav del examen */
+    .exam-nav{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:12px 20px;border-top:1px solid var(--border);
+      background:var(--bg2);flex-shrink:0;gap:10px;
+    }
+    .btn-anterior{
+      background:transparent;color:var(--text2);border:1px solid var(--border2);
+      border-radius:var(--r);padding:9px 16px;font-family:'Inter',sans-serif;
+      font-size:.82rem;cursor:pointer;transition:all .15s;
+    }
+    .btn-anterior:hover:not(:disabled){border-color:var(--text);color:var(--text);}
+    .btn-anterior:disabled{opacity:.3;cursor:not-allowed;}
+    .btn-siguiente{
+      background:var(--red);color:#fff;border:none;
+      border-radius:var(--r);padding:9px 20px;font-family:'Inter',sans-serif;
+      font-size:.82rem;font-weight:700;cursor:pointer;transition:opacity .15s;
+    }
+    .btn-siguiente:hover{opacity:.88;}
+    .omitidas-info{font-size:.72rem;color:var(--text4);text-align:center;line-height:1.3;}
+
+    /* ── RESULTADOS ── */
+    .resultado-header{text-align:center;padding:20px 16px 14px;}
+    .resultado-aprobado{color:var(--green);}
+    .resultado-desaprobado{color:var(--red);}
+    .resultado-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0;}
+    .stat-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);
+      padding:14px;text-align:center;}
+    .stat-box-num{font-size:1.6rem;font-weight:700;color:var(--blue);letter-spacing:-.02em;}
+    .stat-box-label{font-size:.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;}
+    .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);
+      padding:18px;margin-bottom:14px;}
+    .tema-stat{display:grid;grid-template-columns:110px 1fr 40px;gap:8px;align-items:center;margin-bottom:7px;}
+    .tema-nombre{font-size:.72rem;color:var(--text3);text-transform:capitalize;}
+    .tema-bar-container{background:var(--bg3);border-radius:10px;height:6px;overflow:hidden;}
+    .tema-bar{height:100%;border-radius:10px;transition:width .8s;}
+    .tema-pct{font-size:.72rem;font-weight:600;text-align:right;color:var(--text);}
+    .revision-item{padding:11px 13px;border-radius:var(--r);margin-bottom:7px;border-left:3px solid;}
+    .revision-correcta{background:rgba(16,185,129,.06);border-color:var(--green);}
+    .revision-incorrecta{background:rgba(200,25,30,.06);border-color:var(--red);}
+    .revision-num{font-size:.65rem;color:var(--text3);margin-bottom:3px;font-weight:600;}
+    .revision-pregunta{font-size:.82rem;margin-bottom:3px;color:var(--text);}
+    .revision-respuesta{font-size:.72rem;color:var(--text3);}
+    .revision-correcta-label{font-size:.72rem;color:var(--green);margin-top:3px;}
+
+    /* ── FLASHCARDS ── */
+    .flashcard-container{perspective:1000px;max-width:460px;margin:0 auto;}
+    .flashcard{width:100%;min-height:180px;position:relative;
+      transform-style:preserve-3d;transition:transform .5s;cursor:pointer;}
+    .flashcard.flipped{transform:rotateY(180deg);}
+    .flashcard-face{position:absolute;width:100%;min-height:180px;backface-visibility:hidden;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      padding:24px 20px;border-radius:var(--r2);text-align:center;}
+    .flashcard-front{background:var(--red);color:#fff;}
+    .flashcard-back{background:var(--bg2);border:1px solid var(--border);
+      transform:rotateY(180deg);color:var(--text);}
+    .card-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;opacity:.65;margin-bottom:8px;}
+    .card-term{font-size:1.25rem;font-weight:700;letter-spacing:-.01em;}
+    .card-def{font-size:.82rem;line-height:1.6;color:var(--text2);}
+    .flashcard-nav{display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+    .fc-btn{background:var(--bg2);border:1px solid var(--border);color:var(--text3);
+      border-radius:var(--r);padding:8px 16px;font-family:'Inter',sans-serif;
+      font-size:.78rem;cursor:pointer;transition:all .15s;}
+    .fc-btn:hover{border-color:var(--text);color:var(--text);}
+    .fc-btn.primary{background:var(--text);color:var(--bg);border-color:var(--text);}
+
+    /* ── RESPONSIVE MOBILE ── */
+    @media(max-width:600px){
+      .sidebar{display:none;}
+      .layout{flex-direction:column;}
+      .mobile-nav{
+        display:flex!important;
+        position:sticky;top:0;z-index:100;
+        background:var(--bg2);border-bottom:1px solid var(--border);
+        padding:8px 14px;align-items:center;justify-content:space-between;gap:8px;
+      }
+      .mobile-nav-left{display:flex;align-items:center;gap:9px;}
+      .mobile-tabs{display:flex;gap:4px;}
+      .mobile-tab{background:transparent;border:1px solid var(--border);border-radius:6px;
+        padding:6px 11px;font-family:'Inter',sans-serif;font-size:.72rem;color:var(--text3);cursor:pointer;}
+      .mobile-tab.active{background:var(--text);color:var(--bg);border-color:var(--text);}
+      .main{padding:14px 14px 80px;}
+      .cfg-card{max-width:100%;}
+      .resultado-stats{grid-template-columns:repeat(3,1fr);}
+      .tema-stat{grid-template-columns:80px 1fr 34px;}
+      .exam-body{padding:14px 14px 8px;}
+      .exam-topbar{padding:10px 14px;}
+      .exam-nav{padding:10px 14px;}
+    }
+    @media(min-width:601px){
+      .mobile-nav{display:none;}
+    }
+  </style>
 </head>
-<body class="panel-dark">
+<body>
 
-<div class="dashboard-layout">
+<!-- MOBILE NAV (solo móvil) -->
+<div class="mobile-nav" style="display:none;">
+  <div class="mobile-nav-left">
+    <div style="width:26px;height:26px;background:var(--red);border-radius:5px;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:800;font-size:.65rem;color:#fff;">OE</div>
+    <span style="font-size:.8rem;font-weight:600;color:var(--text);" id="mobile-nombre">—</span>
+  </div>
+  <div class="mobile-tabs">
+    <button class="mobile-tab active" data-tab="tab-simulacro">🎯</button>
+    <button class="mobile-tab" data-tab="tab-flashcards">📚</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <button class="x-toggle" id="theme-toggle-mobile"></button>
+    <button id="btn-logout-mobile" style="background:transparent;border:1px solid var(--border);
+      border-radius:6px;padding:5px 10px;font-size:.68rem;color:var(--text3);cursor:pointer;">↩</button>
+  </div>
+</div>
 
-  <!-- SIDEBAR -->
+<div class="layout">
+
+  <!-- SIDEBAR desktop -->
   <aside class="sidebar">
-    <div class="sidebar-brand">
-      <div class="navbar-logo" style="margin:0 auto 10px;">OE</div>
-      <div class="navbar-title" style="font-size:0.9rem;" id="alumno-nombre">—</div>
-    </div>
-    <ul class="sidebar-nav">
-      <li><button class="tab-btn active" data-tab="tab-simulacro">🎯 Simulacro</button></li>
-      <li><button class="tab-btn" data-tab="tab-flashcards">📚 Nomenclatura</button></li>
-    </ul>
-    <div style="position:absolute; bottom:20px; left:13px; right:13px; display:flex; flex-direction:column; gap:9px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; padding:7px 11px; background:var(--bg3); border-radius:var(--r); border:1px solid var(--border);">
-        <span id="theme-icon-panel" style="font-size:0.76rem; color:var(--text3);">🌙 Modo</span>
-        <button class="theme-toggle" id="theme-toggle-panel" title="Modo claro / oscuro"></button>
+    <div class="sb-top">
+      <div class="sb-logo">
+        <div class="sb-logo-icon">OE</div>
+        <div>
+          <div class="sb-name" id="alumno-nombre">—</div>
+          <div style="font-size:.6rem;color:var(--text3);">OECE Simulacro</div>
+        </div>
       </div>
-      <button id="btn-logout" class="btn-secondary" style="width:100%; justify-content:center; font-size:0.82rem;">Cerrar sesión</button>
+      <div class="sb-chips">
+        <span class="sb-chip" id="nivel-chip">—</span>
+        <span class="sb-chip" style="font-size:.55rem;">Ley 32069</span>
+        <span class="sb-chip" id="mix-chip" style="display:none;"></span>
+      </div>
+    </div>
+    <div class="sb-nav">
+      <button class="nav-btn active" data-tab="tab-simulacro">🎯 Simulacro</button>
+      <button class="nav-btn" data-tab="tab-flashcards">📚 Nomenclatura</button>
+    </div>
+    <div class="sb-bottom">
+      <div class="sb-toggle-row">
+        <span class="sb-toggle-label" id="theme-icon">🌙 Modo</span>
+        <button class="x-toggle" id="theme-toggle"></button>
+      </div>
+      <button id="btn-logout" class="btn-logout">↩ Cerrar sesión</button>
     </div>
   </aside>
 
-  <!-- CONTENIDO PRINCIPAL -->
-  <main class="main-content">
+  <!-- MAIN -->
+  <main class="main">
 
-    <!-- ── SIMULACRO ──────────────────────────── -->
-    <div id="tab-simulacro" class="tab-panel active">
-
-      <!-- PERFIL MODERNO -->
-      <div class="perfil-alumno">
-        <div class="perfil-avatar" id="perfil-inicial">—</div>
-        <div class="perfil-info">
-          <div class="perfil-nombre" id="alumno-nombre-perfil">—</div>
-          <div class="perfil-detalle">
-            <span class="perfil-chip" id="perfil-nivel-chip">—</span>
-            <span class="perfil-chip" style="background:rgba(255,255,255,0.07); color:rgba(255,255,255,0.5);">Ley 32069</span>
-            <span class="perfil-chip" id="perfil-mix-chip" style="display:none;"></span>
-          </div>
-        </div>
+    <!-- PERFIL BAR -->
+    <div class="perfil-bar">
+      <div class="perfil-av" id="perfil-inicial">—</div>
+      <div>
+        <div class="perfil-name" id="perfil-nombre">—</div>
+        <div class="perfil-detail" id="perfil-detail">Cargando…</div>
       </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="tab-simulacro">🎯 Simulacro</button>
+      <button class="tab-btn" data-tab="tab-flashcards">📚 Nomenclatura</button>
+    </div>
+
+    <!-- ── TAB SIMULACRO ── -->
+    <div id="tab-simulacro" class="tab-panel active">
 
       <!-- CONFIG -->
       <div id="panel-config">
-        <div class="page-header">
-          <div>
-            <h2 class="page-title">Simulacro de Examen</h2>
-            <p class="page-sub">Ley de Contrataciones del Estado N° 32069</p>
+        <div class="cfg-card">
+          <div style="font-size:.65rem;font-weight:700;letter-spacing:.1em;
+            text-transform:uppercase;color:var(--text3);margin-bottom:12px;">
+            Configura tu simulacro
           </div>
-        </div>
-
-        <div class="config-card">
-          <div class="config-info">
-            <div class="config-item">
-              <div class="config-item-num">72</div>
-              <div class="config-item-label">Preguntas</div>
+          <div class="cfg-stats">
+            <div class="cfg-stat">
+              <div class="cfg-stat-num">72</div>
+              <div class="cfg-stat-label">Preguntas</div>
             </div>
-            <div class="config-item">
-              <div class="config-item-num">120'</div>
-              <div class="config-item-label">Minutos</div>
+            <div class="cfg-stat">
+              <div class="cfg-stat-num">120'</div>
+              <div class="cfg-stat-label">Minutos</div>
             </div>
-            <div class="config-item">
-              <div class="config-item-num">70%</div>
-              <div class="config-item-label">Para aprobar</div>
+            <div class="cfg-stat">
+              <div class="cfg-stat-num">70%</div>
+              <div class="cfg-stat-label">Para aprobar</div>
             </div>
           </div>
 
-          <!-- Bloque INTERMEDIO: 50/50 -->
+          <!-- Intermedio 50/50 -->
           <div id="bloque-intermedio" style="display:none;">
-            <div style="background:rgba(0,123,255,0.07); border:1px solid rgba(0,123,255,0.2); border-radius:var(--r-lg); padding:16px; margin-bottom:16px;">
-              <div style="font-weight:700; color:#60A5FA; margin-bottom:10px; font-size:0.88rem;">📘 Plan Intermedio — Composición del simulacro</div>
-              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
-                <div style="text-align:center; background:rgba(0,123,255,0.1); border-radius:var(--r); padding:12px; border:1px solid rgba(0,123,255,0.15);">
-                  <div style="font-family:var(--font-d); font-size:1.8rem; color:#60A5FA;">50%</div>
-                  <div style="font-size:0.76rem; color:var(--text3);">Nivel Intermedio<br><span style="color:rgba(255,255,255,0.4); font-size:0.7rem;">36 preguntas</span></div>
-                </div>
-                <div style="text-align:center; background:rgba(16,185,129,0.08); border-radius:var(--r); padding:12px; border:1px solid rgba(16,185,129,0.15);">
-                  <div style="font-family:var(--font-d); font-size:1.8rem; color:#34D399;">50%</div>
-                  <div style="font-size:0.76rem; color:var(--text3);">Nivel Avanzado<br><span style="color:rgba(255,255,255,0.4); font-size:0.7rem;">36 preguntas</span></div>
-                </div>
+            <div class="mix-grid">
+              <div class="mix-item">
+                <div class="mix-pct" style="color:#60A5FA;">50%</div>
+                <div class="mix-label">Intermedio · 36 preguntas</div>
               </div>
-              <p style="font-size:0.8rem; color:var(--text3); line-height:1.5;">
-                💡 La combinación 50/50 te expone a ambos niveles de dificultad de forma balanceada, preparándote mejor para el examen real.
-              </p>
+              <div class="mix-item">
+                <div class="mix-pct" style="color:#34D399;">50%</div>
+                <div class="mix-label">Avanzado · 36 preguntas</div>
+              </div>
             </div>
           </div>
 
-          <!-- Bloque AVANZADO -->
+          <!-- Avanzado: elige modo -->
           <div id="bloque-avanzado" style="display:none;">
             <div class="form-group">
-              <label class="form-label">🎯 Modo del simulacro</label>
+              <label class="form-label">Modo del simulacro</label>
               <select id="modo-examen" class="form-select">
                 <option value="100avanzado">100% Avanzado — máxima dificultad</option>
-                <option value="mixto_avanzado">Mixto — variedad de niveles (recomendado)</option>
+                <option value="mixto_avanzado">Mixto — variedad de niveles</option>
               </select>
             </div>
-            <div id="info-modo-examen" style="border-radius:var(--r); padding:13px 15px; margin-bottom:4px; font-size:0.84rem; background:rgba(0,123,255,0.07); border:1px solid rgba(0,123,255,0.18); color:var(--text2);">
-              <strong style="color:#60A5FA;">100% Avanzado:</strong> Las 72 preguntas son exclusivamente de nivel avanzado. Ideal para el último repaso antes del examen oficial.
+            <div id="info-modo-examen" class="info-box">
+              <strong>100% Avanzado:</strong> Las 72 preguntas son de nivel avanzado. Ideal para el último repaso.
             </div>
           </div>
 
-          <div class="form-group" style="margin-top:16px;">
+          <div class="form-group" style="margin-top:12px;">
             <label class="form-label">Modo de corrección</label>
             <select id="modo-correccion" class="form-select">
               <option value="final">Al finalizar el examen (recomendado)</option>
@@ -124,67 +471,60 @@
             </select>
           </div>
 
-          <div style="background:var(--bg3); border:1px solid var(--border); border-radius:var(--r); padding:13px; margin:14px 0; font-size:0.84rem; color:var(--text3);">
-            ⚡ <strong style="color:var(--text2);">Sin repetición inteligente:</strong> El sistema recuerda qué preguntas ya respondiste. Cuando hayas visto todas, el ciclo reinicia.
+          <div class="anti-rep-box">
+            ⚡ <strong>Sin repetición:</strong> Siempre preguntas nuevas. El ciclo reinicia automáticamente.
           </div>
 
-          <button id="btn-iniciar-examen" class="btn-primary" style="width:100%; justify-content:center; font-size:1rem; padding:15px;">
+          <button id="btn-iniciar-examen" class="btn-iniciar">
             🚀 Iniciar Simulacro
           </button>
         </div>
       </div>
 
-      <!-- EXAMEN ACTIVO — tarjeta flotante con overlay -->
+      <!-- EXAMEN OVERLAY: ocupa pantalla completa como panel lateral -->
       <div id="panel-examen" style="display:none;">
-        <!-- Header mínimo fuera de la tarjeta -->
-        <div class="examen-header">
-          <div>
-            <h2 class="page-title" style="font-size:1.2rem;">Examen en curso</h2>
-            <p class="page-sub" style="font-size:0.8rem;">Ley de Contrataciones N° 32069</p>
-          </div>
-          <button id="btn-finalizar-top" class="btn-finalizar-card" onclick="window._finalizarExamen && window._finalizarExamen()">
-            Finalizar examen
-          </button>
-        </div>
+        <div class="exam-overlay" id="examen-overlay">
+          <div class="exam-shell">
 
-        <!-- Overlay + tarjeta flotante -->
-        <div class="examen-overlay" id="examen-overlay">
-          <div class="examen-card" id="examen-card">
-
-            <!-- Cabecera de la tarjeta -->
-            <div class="card-header">
-              <div class="card-counter">
-                Pregunta <span id="num-pregunta">1</span> de <span id="examen-total">72</span>
+            <!-- Topbar -->
+            <div class="exam-topbar">
+              <div class="exam-counter">
+                Pregunta <strong id="num-pregunta">1</strong>
+                <span style="color:var(--text4);">/ <span id="examen-total">72</span></span>
               </div>
-              <div class="card-timer" id="timer">120:00</div>
-            </div>
 
-            <!-- Barra de progreso -->
-            <div class="card-progress">
-              <div class="card-progress-fill" id="progreso-bar" style="width:0%"></div>
-            </div>
+              <!-- Timer bonito -->
+              <div class="exam-timer" id="timer-wrap">
+                <span class="timer-icon">⏱</span>
+                <span class="timer-digits" id="timer">120:00</span>
+              </div>
 
-            <!-- Tema -->
-            <div class="card-tema">
-              <span id="tema-pregunta" class="badge badge-nivel-intermedio"></span>
-            </div>
-
-            <!-- Pregunta -->
-            <p id="texto-pregunta" class="card-pregunta"></p>
-
-            <!-- Opciones -->
-            <div class="opciones-grid" id="opciones-container"></div>
-
-            <!-- Feedback -->
-            <div id="feedback-momento" style="display:none;"></div>
-
-            <!-- Navegación -->
-            <div class="card-nav">
-              <button id="btn-anterior" class="btn-secondary" style="font-size:0.86rem; padding:9px 18px;" disabled>← Anterior</button>
-              <button class="btn-finalizar-card" id="btn-omitir-info" style="font-size:0.76rem; opacity:0.6; cursor:default; border:none; background:none; color:var(--text3); padding:0;">
-                Sin responder: <span id="omitidas-count">0</span>
+              <button class="btn-fin-top" id="btn-finalizar-top"
+                onclick="window._finalizarExamen && window._finalizarExamen()">
+                Finalizar
               </button>
-              <button id="btn-siguiente" class="btn-primary" style="font-size:0.86rem; padding:9px 18px;">Siguiente →</button>
+            </div>
+
+            <!-- Barra progreso -->
+            <div class="exam-progress">
+              <div class="exam-progress-fill" id="progreso-bar" style="width:0%"></div>
+            </div>
+
+            <!-- Body pregunta -->
+            <div class="exam-body">
+              <span id="tema-pregunta" class="exam-tema"></span>
+              <p id="texto-pregunta" class="exam-pregunta"></p>
+              <div class="opciones-grid" id="opciones-container"></div>
+              <div id="feedback-momento" style="display:none;"></div>
+            </div>
+
+            <!-- Nav -->
+            <div class="exam-nav">
+              <button id="btn-anterior" class="btn-anterior" disabled>← Anterior</button>
+              <div class="omitidas-info">
+                Sin responder<br><strong id="omitidas-count">0</strong>
+              </div>
+              <button id="btn-siguiente" class="btn-siguiente">Siguiente →</button>
             </div>
 
           </div>
@@ -194,8 +534,8 @@
       <!-- RESULTADOS -->
       <div id="panel-resultados" style="display:none;">
         <div class="resultado-header">
-          <div id="resultado-icon" style="font-size:3.2rem; margin-bottom:10px;"></div>
-          <h2 id="resultado-titulo" style="margin-bottom:10px;"></h2>
+          <div id="resultado-icon" style="font-size:2.8rem;margin-bottom:8px;"></div>
+          <h2 id="resultado-titulo" style="font-size:1.3rem;font-weight:700;letter-spacing:-.02em;margin-bottom:8px;"></h2>
           <div class="resultado-stats">
             <div class="stat-box">
               <div class="stat-box-num" id="resultado-puntaje">—</div>
@@ -207,53 +547,45 @@
             </div>
             <div class="stat-box">
               <div class="stat-box-num" id="resultado-tiempo">—</div>
-              <div class="stat-box-label">Tiempo usado</div>
+              <div class="stat-box-label">Tiempo</div>
             </div>
           </div>
         </div>
-
-        <div class="card" style="margin-bottom:18px;">
-          <h3 style="margin-bottom:18px; font-size:0.95rem;">Análisis por tema</h3>
+        <div class="card">
+          <div style="font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:14px;">Análisis por tema</div>
           <div id="analisis-temas"></div>
         </div>
-
-        <div class="card" style="margin-bottom:18px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:7px;">
-            <h3 style="font-size:0.95rem; margin:0;">🌡️ Mapa de calor — Evolución por tema</h3>
-            <span style="font-size:0.74rem; color:var(--text3);">Historial de 8 sesiones</span>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:6px;">
+            <div style="font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);">🌡️ Mapa de calor</div>
+            <span style="font-size:.68rem;color:var(--text4);">8 sesiones</span>
           </div>
           <div id="mapa-calor-container"></div>
         </div>
-
-        <div class="card" style="margin-bottom:18px;">
-          <h3 style="margin-bottom:14px; font-size:0.95rem;">Revisión de respuestas</h3>
+        <div class="card">
+          <div style="font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:12px;">Revisión de respuestas</div>
           <div id="revision-respuestas"></div>
         </div>
-
-        <div style="text-align:center; padding:18px;">
-          <button id="btn-nuevo-examen" class="btn-primary" style="font-size:0.98rem; padding:14px 32px;">
+        <div style="text-align:center;padding:16px;">
+          <button id="btn-nuevo-examen" class="btn-iniciar" style="max-width:300px;display:inline-flex;">
             🔄 Nuevo simulacro
           </button>
         </div>
       </div>
 
-    </div>
+    </div><!-- /tab-simulacro -->
 
-    <!-- ── FLASHCARDS ──────────────────────────── -->
+    <!-- ── TAB FLASHCARDS ── -->
     <div id="tab-flashcards" class="tab-panel">
-      <div class="page-header">
-        <div>
-          <h2 class="page-title">Nomenclatura OECE</h2>
-          <p class="page-sub">Conceptos clave · Clic en la tarjeta para voltear</p>
-        </div>
-      </div>
+      <div style="font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+        color:var(--text3);margin-bottom:16px;">Nomenclatura OECE · Ley 32069</div>
 
       <div class="flashcard-container">
         <div id="flashcard" class="flashcard">
           <div class="flashcard-face flashcard-front">
             <div class="card-label">Término</div>
             <div id="card-front-text" class="card-term">—</div>
-            <div style="font-size:0.7rem; opacity:0.6; margin-top:10px;">👆 Clic para ver definición</div>
+            <div style="font-size:.62rem;opacity:.55;margin-top:8px;">Toca para ver definición</div>
           </div>
           <div class="flashcard-face flashcard-back">
             <div class="card-label">Definición</div>
@@ -262,93 +594,121 @@
         </div>
       </div>
 
-      <div class="flashcard-nav" style="margin-top:22px;">
-        <button id="btn-prev-card" class="btn-secondary" style="padding:9px 18px; font-size:0.84rem;">← Anterior</button>
-        <span id="card-counter" style="font-size:0.84rem; color:var(--text3); padding:9px 12px;">1 / 18</span>
-        <button id="btn-next-card" class="btn-secondary" style="padding:9px 18px; font-size:0.84rem;">Siguiente →</button>
-        <button id="btn-flip" class="btn-blue" style="padding:9px 16px; font-size:0.84rem;">↺ Voltear</button>
+      <div class="flashcard-nav">
+        <button id="btn-prev-card" class="fc-btn">← Anterior</button>
+        <span id="card-counter" style="font-size:.78rem;color:var(--text3);padding:8px 12px;">1 / 18</span>
+        <button id="btn-next-card" class="fc-btn">Siguiente →</button>
+        <button id="btn-flip" class="fc-btn primary">↺ Voltear</button>
       </div>
 
-      <div class="card" style="margin-top:36px;">
-        <h3 style="margin-bottom:18px; font-size:0.95rem;">Todos los conceptos</h3>
-        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:8px;" id="lista-conceptos"></div>
+      <div class="card" style="margin-top:28px;">
+        <div style="font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+          color:var(--text3);margin-bottom:12px;">Todos los conceptos</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;"
+          id="lista-conceptos"></div>
       </div>
     </div>
 
   </main>
-</div>
+</div><!-- /layout -->
 
-<!-- TOAST -->
 <div id="toast" class="toast"></div>
 
 <script type="module" src="js/simulacro.js"></script>
 
 <script type="module">
-  import { getSession } from './js/auth.js';
-  const session = getSession();
-  if (session) {
-    // Perfil
-    const inicial = session.nombre ? session.nombre.charAt(0).toUpperCase() : 'A';
-    document.getElementById('perfil-inicial').textContent = inicial;
-    document.getElementById('alumno-nombre-perfil').textContent = session.nombre || session.dni;
+import { getSession } from './js/auth.js';
+const session = getSession();
+if (session) {
+  const inicial = session.nombre?.charAt(0).toUpperCase() || 'A';
+  document.querySelectorAll('[id="alumno-nombre"], #mobile-nombre')
+    .forEach(el => el.textContent = session.nombre || session.dni);
+  document.getElementById('perfil-inicial').textContent = inicial;
+  document.getElementById('perfil-nombre').textContent = session.nombre || session.dni;
 
-    const nivelChip = document.getElementById('perfil-nivel-chip');
-    const mixChip   = document.getElementById('perfil-mix-chip');
+  const nivelChip  = document.getElementById('nivel-chip');
+  const mixChip    = document.getElementById('mix-chip');
+  const detailEl   = document.getElementById('perfil-detail');
 
-    if (session.nivel === 'intermedio') {
-      document.getElementById('bloque-intermedio').style.display = 'block';
-      nivelChip.textContent = '📘 Intermedio';
-      nivelChip.classList.add('nivel-int');
-      mixChip.textContent = '50% Int · 50% Adv';
-      mixChip.style.display = 'inline-block';
-    } else {
-      document.getElementById('bloque-avanzado').style.display = 'block';
-      nivelChip.textContent = '📗 Avanzado';
-      nivelChip.classList.add('nivel-adv');
-    }
-
-    // Info dinámica modo examen
-    const modoSel  = document.getElementById('modo-examen');
-    const infoModo = document.getElementById('info-modo-examen');
-    const textos = {
-      '100avanzado':   '<strong style="color:#60A5FA;">100% Avanzado:</strong> Las 72 preguntas son de nivel avanzado. Ideal para el último repaso antes del examen.',
-      'mixto_avanzado':'<strong style="color:#34D399;">Modo Mixto:</strong> Combina preguntas de ambos niveles con variedad aleatoria. Perfecto para repaso completo.'
-    };
-    if (modoSel) modoSel.addEventListener('change', () => { if (infoModo) infoModo.innerHTML = textos[modoSel.value] || ''; });
+  if (session.nivel === 'intermedio') {
+    document.getElementById('bloque-intermedio').style.display = 'block';
+    nivelChip.textContent = 'Intermedio'; nivelChip.classList.add('int');
+    mixChip.textContent   = '50/50'; mixChip.style.display = 'inline-block';
+    detailEl.textContent  = 'Plan Intermedio · 50% Int · 50% Adv';
+  } else {
+    document.getElementById('bloque-avanzado').style.display = 'block';
+    nivelChip.textContent = 'Avanzado'; nivelChip.classList.add('adv');
+    detailEl.textContent  = 'Plan Avanzado · Ley 32069';
   }
 
-  // Lista conceptos en flashcards
-  const terms = ['OECE','PAC','Adjudicación Simplificada','Licitación Pública','Concurso Público','Contratación Directa','RNP','Expediente de Contratación','Valor Referencial','Garantía de Fiel Cumplimiento','Penalidad por Mora','Subasta Inversa Electrónica','Convenio Marco','Adicional de Obra','Árbitro','UIT','Comité de Selección','Bases Integradas'];
-  const container = document.getElementById('lista-conceptos');
-  if (container) {
-    container.innerHTML = terms.map((t, i) => `
-      <div onclick="window.irFlashcard && window.irFlashcard(${i})" style="background:var(--bg3); border:1px solid var(--border); border-radius:var(--r); padding:9px 13px; font-size:0.82rem; cursor:pointer; transition:all 0.18s; color:var(--text2);" onmouseover="this.style.borderColor='var(--azul)'; this.style.color='var(--azul)'" onmouseout="this.style.borderColor='var(--border)'; this.style.color='var(--text2)'">
-        <span style="color:var(--rojo); font-weight:700; margin-right:5px;">${String(i+1).padStart(2,'0')}.</span>${t}
-      </div>`).join('');
-  }
+  // Info dinámica modo avanzado
+  const sel = document.getElementById('modo-examen');
+  const inf = document.getElementById('info-modo-examen');
+  const txts = {
+    '100avanzado':   '<strong>100% Avanzado:</strong> Las 72 preguntas son de nivel avanzado.',
+    'mixto_avanzado':'<strong>Modo Mixto:</strong> Combina ambos niveles con variación aleatoria.'
+  };
+  if (sel) sel.addEventListener('change', () => { if(inf) inf.innerHTML = txts[sel.value]||''; });
+}
+
+// Lista conceptos
+const terms = ['OECE','PAC','Adjudicación Simplificada','Licitación Pública','Concurso Público',
+  'Contratación Directa','RNP','Expediente de Contratación','Valor Referencial',
+  'Garantía de Fiel Cumplimiento','Penalidad por Mora','Subasta Inversa Electrónica',
+  'Convenio Marco','Adicional de Obra','Árbitro','UIT','Comité de Selección','Bases Integradas'];
+const ctn = document.getElementById('lista-conceptos');
+if (ctn) ctn.innerHTML = terms.map((t,i) => `
+  <div onclick="window.irFlashcard&&window.irFlashcard(${i})"
+    style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);
+    padding:8px 12px;font-size:.76rem;cursor:pointer;color:var(--text2);transition:all .15s;"
+    onmouseover="this.style.borderColor='var(--text3)';this.style.color='var(--text)'"
+    onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">
+    <span style="color:var(--red);font-weight:700;margin-right:5px;">${String(i+1).padStart(2,'0')}.</span>${t}
+  </div>`).join('');
 </script>
 
 <script>
-// Dark/light toggle — panel mantiene oscuro siempre, pero el toggle
-// ajusta variantes más profundas vía data-theme en html
-(function() {
-  const html  = document.documentElement;
-  const saved = localStorage.getItem('oece-theme') || 'light';
-  html.setAttribute('data-theme', saved);
-  document.addEventListener('DOMContentLoaded', () => {
-    const toggle = document.getElementById('theme-toggle-panel');
-    const icon   = document.getElementById('theme-icon-panel');
-    if (!toggle) return;
-    icon.textContent = saved === 'dark' ? '☀️ Modo' : '🌙 Modo';
-    toggle.addEventListener('click', () => {
-      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      html.setAttribute('data-theme', next);
-      icon.textContent = next === 'dark' ? '☀️ Modo' : '🌙 Modo';
-      localStorage.setItem('oece-theme', next);
+// Tabs — unificado para sidebar + tabs + mobile
+document.querySelectorAll('[data-tab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tabId = btn.dataset.tab;
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(tabId)?.classList.add('active');
+    // Actualizar todos los botones que apuntan a ese tab
+    document.querySelectorAll('[data-tab]').forEach(b => {
+      b.classList.toggle('active', b.dataset.tab === tabId);
     });
   });
-})();
-</script>
+});
 
+// Theme toggle
+const html = document.documentElement;
+function applyTheme(t) {
+  html.setAttribute('data-theme', t);
+  localStorage.setItem('oece-theme', t);
+  const icon = document.getElementById('theme-icon');
+  if (icon) icon.textContent = t==='dark' ? '🌙 Modo' : '☀️ Modo';
+}
+document.getElementById('theme-toggle')?.addEventListener('click', () => {
+  applyTheme(html.getAttribute('data-theme')==='dark'?'light':'dark');
+});
+document.getElementById('theme-toggle-mobile')?.addEventListener('click', () => {
+  applyTheme(html.getAttribute('data-theme')==='dark'?'light':'dark');
+});
+
+// Timer wrapper: actualizar clase del wrapper
+const _origTimer = setInterval; // no-op, timer se maneja en simulacro.js
+// Observar cambios de clase en #timer y propagarlos al wrapper
+const timerObs = new MutationObserver(() => {
+  const t = document.getElementById('timer');
+  const w = document.getElementById('timer-wrap');
+  if (!t||!w) return;
+  w.className = t.className.includes('warn') ? 'exam-timer warn' : 'exam-timer';
+});
+document.addEventListener('DOMContentLoaded', () => {
+  const t = document.getElementById('timer');
+  if (t) timerObs.observe(t, {attributes:true, attributeFilter:['class']});
+});
+</script>
 </body>
 </html>
