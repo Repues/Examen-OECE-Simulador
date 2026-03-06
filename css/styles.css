@@ -900,8 +900,11 @@ tbody tr:hover td { background: rgba(255,255,255,0.03); }
   .tema-stat { grid-template-columns: 100px 1fr 40px; gap: 8px; }
   .tema-nombre { font-size: 0.75rem; }
 
-  /* Stats admin */
+  /* Stats admin — 5 tarjetas */
   .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* Fechas en modal — columna única en móvil */
+  #modal-usuario [style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
   .stat-num { font-size: 1.7rem; }
 
   /* Flashcards */
